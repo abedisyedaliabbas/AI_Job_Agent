@@ -7,7 +7,8 @@ bind = f"0.0.0.0:{os.environ.get('PORT', '5000')}"
 backlog = 2048
 
 # Worker processes
-workers = multiprocessing.cpu_count() * 2 + 1
+# Railway/Heroku: Use environment variable or default to 2
+workers = int(os.environ.get('WEB_CONCURRENCY', 2))
 worker_class = 'sync'
 worker_connections = 1000
 timeout = 120
