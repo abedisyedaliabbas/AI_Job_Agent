@@ -41,7 +41,7 @@
      - `https://your-app-name.railway.app` (after Railway deployment)
    - Authorized redirect URIs:
      - `http://localhost:5000/auth/google/callback` (for local)
-     - `https://your-app-name.railway.app/auth/google/callback` (for Railway)
+     - `https://aijobagent.up.railway.app/auth/google/callback` (for Railway)
    - Click "Create"
 
 ## Step 5: Copy Your Credentials

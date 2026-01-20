@@ -51,7 +51,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 3. Edit your OAuth 2.0 Client
 4. Add Authorized Redirect URI:
    ```
-   https://your-app-name.railway.app/auth/google/callback
+   https://aijobagent.up.railway.app/auth/google/callback
    ```
 
 ## Step 6: Deploy

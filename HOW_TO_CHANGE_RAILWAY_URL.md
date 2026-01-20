@@ -1,6 +1,8 @@
 # How to Change Railway URL
 
-Your current URL: `web-production-1cb51.up.railway.app` is auto-generated. Here's how to change it:
+Your Railway URL: `aijobagent.up.railway.app` ✅
+
+If you need to change it again, here's how:
 
 ## Option 1: Generate a New Service (Easiest)
 

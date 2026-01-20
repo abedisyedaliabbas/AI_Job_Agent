@@ -1,0 +1,15 @@
+Your AI Job Agent Website URL:
+
+https://aijobagent.up.railway.app
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+IMPORTANT: Update Google OAuth Redirect URI
+
+1. Go to: https://console.cloud.google.com/apis/credentials
+2. Click your OAuth 2.0 Client ID
+3. Under "Authorized redirect URIs", add:
+   https://aijobagent.up.railway.app/auth/google/callback
+4. Click "Save"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

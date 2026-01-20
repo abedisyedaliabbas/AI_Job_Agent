@@ -31,7 +31,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 3. Enable "Google+ API" or "People API"
 4. Go to "APIs & Services" → "Credentials"
 5. Create OAuth 2.0 Client ID (Web application)
-6. Add redirect URI: `https://your-app.railway.app/auth/google/callback`
+6. Add redirect URI: `https://aijobagent.up.railway.app/auth/google/callback`
 7. Copy Client ID and Client Secret
 
 **OR** Skip Google OAuth (optional):
