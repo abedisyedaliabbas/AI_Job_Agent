@@ -1,0 +1,16 @@
+# Environment Variables for Railway Deployment
+# Copy these to Railway → Variables tab
+
+# REQUIRED: Flask Secret Key
+# Generate with: python -c "import secrets; print(secrets.token_hex(32))"
+SECRET_KEY=your_generated_secret_key_here
+
+# OPTIONAL: Google OAuth 2.0 (for Google Sign-in)
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# REQUIRED: Flask Environment
+FLASK_ENV=production
+
+# OPTIONAL: Port (Railway sets this automatically)
+PORT=5000
