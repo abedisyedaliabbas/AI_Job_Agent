@@ -268,7 +268,7 @@ def get_user_session():
     user_id = session['user_id']
     if user_id not in user_sessions:
         job_search = JobSearchEngine()
-        job_search.worldwide_search = WorldwideJobSearch()
+        # WorldwideJobSearch removed - using comprehensive search instead
         user_sessions[user_id] = {
             'profile_manager': None,
             'job_search': job_search,
@@ -446,9 +446,8 @@ def search_jobs():
         # Combine locations
         search_locations = locations if locations else ([location] if location else [])
         
-        # Use SIMPLE search (most reliable)
+        # Use comprehensive search (searches 10+ job boards)
         all_jobs = []
-        simple_search = SimpleJobSearch()
         
         try:
             # Determine location
@@ -457,27 +456,13 @@ def search_jobs():
             else:
                 location = search_locations[0] if search_locations else ""
             
-            # Search with simple search
-            jobs = simple_search.search(keywords, location, max_results)
+            # Use comprehensive job search (searches all sources)
+            from comprehensive_job_search import ComprehensiveJobSearch
+            comprehensive_search = ComprehensiveJobSearch()
+            jobs = comprehensive_search.search(keywords, location, max_results)
             if jobs:
                 all_jobs.extend(jobs)
-                print(f"[SEARCH] Found {len(jobs)} jobs using simple search")
-            
-            # If not enough, try fast search
-            if len(all_jobs) < max_results // 2:
-                try:
-                    fast_search = FastJobSearch()
-                    fast_jobs = fast_search.search_jobs(keywords, location, max_results - len(all_jobs))
-                    # Merge without duplicates
-                    existing = {(j.title.lower(), j.company.lower()) for j in all_jobs}
-                    for job in fast_jobs:
-                        key = (job.title.lower(), job.company.lower())
-                        if key not in existing:
-                            all_jobs.append(job)
-                            existing.add(key)
-                    print(f"[SEARCH] Fast search added {len(fast_jobs)} more jobs")
-                except Exception as e:
-                    print(f"[SEARCH] Fast search failed: {e}")
+                print(f"[SEARCH] Found {len(jobs)} jobs using comprehensive search")
             
             # REMOVED: Sample job generation - users should get real jobs or clear message
             if len(all_jobs) == 0:
@@ -529,9 +514,11 @@ def search_jobs():
                     print("[SEARCH] Using ML-powered matcher for AI-based matching")
                     scored_jobs = ml_matcher.match_jobs(filtered_jobs, min_score=0.0)
                 else:
-                    from smart_job_matcher import SmartJobMatcher
-                    smart_matcher = SmartJobMatcher(user_session['profile_manager'])
-                    scored_jobs = smart_matcher.match_jobs(filtered_jobs, min_score=0.0)
+                    # Use basic matcher if ML not available
+                    if user_session.get('job_matcher'):
+                        scored_jobs = user_session['job_matcher'].match_jobs(filtered_jobs, min_score=0.0)
+                    else:
+                        scored_jobs = filtered_jobs
                 filtered_jobs = scored_jobs
                 print(f"[SEARCH] Scored {len(scored_jobs)} jobs")
             except Exception as e:
@@ -1883,7 +1870,7 @@ def load_jobs():
 @app.route('/api/search_urls', methods=['POST'])
 def get_search_urls():
     """Generate search URLs for various job boards"""
-    from job_search_helper import JobSearchHelper
+    # JobSearchHelper removed - using comprehensive search instead
     
     data = request.json
     keywords = data.get('keywords', [])
@@ -1895,7 +1882,12 @@ def get_search_urls():
     elif not isinstance(keywords, list):
         keywords = []
     
-    urls = JobSearchHelper.generate_search_urls(keywords, location)
+    # Generate search URLs manually (JobSearchHelper removed)
+    urls = {
+        'indeed': f"https://www.indeed.com/jobs?q={'+'.join(keywords)}&l={location}",
+        'linkedin': f"https://www.linkedin.com/jobs/search/?keywords={'%20'.join(keywords)}&location={location}",
+        'glassdoor': f"https://www.glassdoor.com/Job/jobs.htm?sc.keyword={'+'.join(keywords)}&locT=C&locId={location}"
+    }
     
     return jsonify({
         'success': True,
