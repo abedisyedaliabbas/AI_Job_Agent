@@ -7,6 +7,7 @@ cover_letter_*.txt
 *.pdf
 *.docx
 *.doc
+config.json
 
 # Python
 __pycache__/
@@ -72,6 +73,26 @@ WEB_QUICK_START.md
 WEB_README.md
 WORKFLOW_GUIDE.md
 AI_ML_FEATURES.md
+
+# Old/unused code files (keep repo clean)
+example_usage.py
+add_jobs_manual.py
+cv_parser.py
+resume_parser.py
+resume_parser_improved.py
+intelligent_resume_parser.py
+fast_job_search.py
+simple_job_search.py
+worldwide_job_search.py
+job_search.py
+job_search_helper.py
+job_matcher.py
+smart_job_matcher.py
+ai_job_agent.py
+setup_auth.py
+update_env_secret.py
+verify_redirect_uri.py
+verify_profile.py
 
 # Deployment
 .railway/
