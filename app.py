@@ -15,7 +15,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from profile_manager import ProfileManager
-from cv_parser import parse_abedi_cv
 from job_search import JobSearchEngine, JobListing
 from typing import List, Dict
 from job_matcher import JobMatcher
@@ -28,17 +27,13 @@ except ImportError:
     print("[APP] ML matcher not available. Using standard matcher.")
 from cover_letter_generator import CoverLetterGenerator
 from application_automator import ApplicationAutomator
-from job_search_helper import JobSearchHelper
 from resume_parser import parse_resume_file
 from resume_parser_improved import parse_resume_file_improved
 from intelligent_resume_parser import parse_resume_file_intelligent
 from resume_parser_v2 import parse_resume_file_v2
 from job_url_extractor import JobURLExtractor
-from worldwide_job_search import WorldwideJobSearch
 from smart_apply import SmartApply
 from auto_job_agent import AutoJobAgent
-from fast_job_search import FastJobSearch
-from simple_job_search import SimpleJobSearch
 from user_manager import UserManager
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import time
