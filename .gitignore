@@ -4,6 +4,9 @@ jobs.json
 applications_log.json
 example_jobs.json
 cover_letter_*.txt
+*.pdf
+*.docx
+*.doc
 
 # Python
 __pycache__/
@@ -27,10 +30,17 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# API keys and secrets
+# API keys and secrets - CRITICAL: Never commit these!
 .env
+.env.backup
 config.local.json
 secrets.json
+setup_auth.py
+update_env_secret.py
+verify_redirect_uri.py
+*.key
+*.pem
+*.p12
 
 # Logs
 *.log
@@ -39,11 +49,25 @@ secrets.json
 data/users.json
 data/profile_*.json
 data/jobs_*.json
-uploads/*.pdf
-uploads/*.docx
-uploads/*.doc
-uploads/*.txt
-static/cover_letters/*.txt
+uploads/
+static/cover_letters/
+
+# Documentation files (remove from repo for professional look)
+AUTH_SETUP.md
+AUTO_APPLY_SETUP.md
+DEPLOYMENT.md
+DEPLOY_NOW.md
+FIX_REDIRECT_URI.md
+GET_CLIENT_SECRET.md
+GOOGLE_CONSOLE_STEPS.md
+GOOGLE_OAUTH_SETUP.md
+QUICK_START_AUTH.md
+QUICK_START.md
+README_DEPLOYMENT.md
+WEB_QUICK_START.md
+WEB_README.md
+WORKFLOW_GUIDE.md
+AI_ML_FEATURES.md
 
 # Deployment
 .railway/

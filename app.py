@@ -19,6 +19,13 @@ from cv_parser import parse_abedi_cv
 from job_search import JobSearchEngine, JobListing
 from typing import List, Dict
 from job_matcher import JobMatcher
+# Try to import ML matcher (optional - falls back if not available)
+try:
+    from ml_job_matcher import MLJobMatcher
+    ML_MATCHER_AVAILABLE = True
+except ImportError:
+    ML_MATCHER_AVAILABLE = False
+    print("[APP] ML matcher not available. Using standard matcher.")
 from cover_letter_generator import CoverLetterGenerator
 from application_automator import ApplicationAutomator
 from job_search_helper import JobSearchHelper
@@ -521,10 +528,15 @@ def search_jobs():
         # Score and sort jobs by relevance (like LinkedIn - best matches first)
         if user_session.get('profile_manager') and filtered_jobs:
             try:
-                from smart_job_matcher import SmartJobMatcher
-                smart_matcher = SmartJobMatcher(user_session['profile_manager'])
-                # Score all jobs (min_score=0.0 to show all)
-                scored_jobs = smart_matcher.match_jobs(filtered_jobs, min_score=0.0)
+                # Try ML matcher first (best), then SmartJobMatcher
+                if ML_MATCHER_AVAILABLE:
+                    ml_matcher = MLJobMatcher(user_session['profile_manager'])
+                    print("[SEARCH] Using ML-powered matcher for AI-based matching")
+                    scored_jobs = ml_matcher.match_jobs(filtered_jobs, min_score=0.0)
+                else:
+                    from smart_job_matcher import SmartJobMatcher
+                    smart_matcher = SmartJobMatcher(user_session['profile_manager'])
+                    scored_jobs = smart_matcher.match_jobs(filtered_jobs, min_score=0.0)
                 filtered_jobs = scored_jobs
                 print(f"[SEARCH] Scored {len(scored_jobs)} jobs")
             except Exception as e:
@@ -741,10 +753,17 @@ def match_jobs():
         selected_jobs = jobs_list  # Match all if none selected
     
     # Use smart matcher - score ALL jobs (min_score=0.0)
+    # Try ML matcher first (best), then SmartJobMatcher, then basic
     try:
-        from smart_job_matcher import SmartJobMatcher
-        smart_matcher = SmartJobMatcher(user_session['profile_manager'])
-        matched_jobs = smart_matcher.match_jobs(selected_jobs, min_score=0.0)  # Don't filter - score all
+        if ML_MATCHER_AVAILABLE:
+            ml_matcher = MLJobMatcher(user_session['profile_manager'])
+            print("[MATCH] Using ML-powered matcher for AI-based matching")
+            matched_jobs = ml_matcher.match_jobs(selected_jobs, min_score=0.0)
+        else:
+            from smart_job_matcher import SmartJobMatcher
+            smart_matcher = SmartJobMatcher(user_session['profile_manager'])
+            print("[MATCH] Using SmartJobMatcher for better matching")
+            matched_jobs = smart_matcher.match_jobs(selected_jobs, min_score=0.0)
     except Exception as e:
         print(f"Smart matcher error: {e}")
         import traceback

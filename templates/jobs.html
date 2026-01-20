@@ -297,6 +297,25 @@ $(document).ready(function() {
             }
         });
     });
+    
+    // Handle single job apply button
+    $(document).on('click', '.apply-single-job', function() {
+        const jobIndex = parseInt($(this).data('job-index'));
+        const btn = $(this);
+        
+        // Get user email first
+        $.get('/api/user_email', function(emailResponse) {
+            if (!emailResponse.success || !emailResponse.email) {
+                alert('Please upload your resume first to set your email address.');
+                return;
+            }
+            
+            // Show review modal for single job
+            showReviewModal([jobIndex], emailResponse.email, 'single');
+        }).fail(function() {
+            alert('Error loading your email. Please try again.');
+        });
+    });
 
     function showReviewModal(jobIndices, userEmail, type) {
         const jobs = {{ jobs|tojson|safe }};
