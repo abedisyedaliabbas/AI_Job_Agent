@@ -194,4 +194,3 @@ For issues and questions, please open a GitHub issue.
 
 ---
 
-**Built with ❤️ using AI and Machine Learning**
