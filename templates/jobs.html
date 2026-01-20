@@ -1,0 +1,522 @@
+{% extends "base.html" %}
+
+{% block title %}My Jobs - AI Job Agent{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h3 class="mb-0"><i class="bi bi-briefcase me-2"></i>My Jobs</h3>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="/add_job" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-plus-circle me-1"></i>Add Job
+            </a>
+            <button class="btn btn-sm btn-primary" id="matchBtn">
+                <i class="bi bi-graph-up me-1"></i>Match All
+            </button>
+            <button class="btn btn-sm btn-success" id="generateCoversBtn" style="display: none;">
+                <i class="bi bi-file-text me-1"></i>Generate Covers
+            </button>
+            <button class="btn btn-sm btn-danger" id="applyAllBtn" style="display: none;">
+                <i class="bi bi-send-check me-1"></i>Apply All
+            </button>
+            <button class="btn btn-sm btn-success" id="applySelectedBtn" style="display: none;">
+                <i class="bi bi-send me-1"></i>Apply Selected
+            </button>
+        </div>
+    </div>
+
+    <div id="jobsContainer">
+        {% if jobs and jobs|length > 0 %}
+            <div class="mb-3">
+                <input type="checkbox" id="selectAll" class="form-check-input me-2">
+                <label for="selectAll" class="form-check-label">Select All</label>
+            </div>
+            {% for job in jobs %}
+            <div class="card job-card">
+                <div class="card-body">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input job-checkbox" type="checkbox" 
+                               value="{{ loop.index0 }}" id="job{{ loop.index0 }}">
+                        <label class="form-check-label" for="job{{ loop.index0 }}"></label>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title">{{ job.title }}</h5>
+                            <p class="text-muted mb-1">
+                                <i class="bi bi-building me-1"></i>{{ job.company }}
+                            </p>
+                            <p class="text-muted mb-1">
+                                <i class="bi bi-geo-alt me-1"></i>{{ job.location }}
+                            </p>
+                            {% if job.match_score %}
+                            <p class="match-score mb-2">
+                                <i class="bi bi-star-fill me-1"></i>{{ "%.1f"|format(job.match_score * 100) }}% Match
+                            </p>
+                            {% endif %}
+                            {% if job.salary %}
+                            <p class="text-success mb-1">
+                                <i class="bi bi-cash-coin me-1"></i>{{ job.salary }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            {% if job.source == 'sample-generated' or (job.url and 'example.com' in job.url.lower()) %}
+                                <span class="badge bg-secondary me-2">Sample Job</span>
+                            {% elif job.url and not job.url.startswith('#') and 'example.com' not in job.url.lower() %}
+                                <div class="btn-group" role="group">
+                                    <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();">
+                                        {% if 'search-url' in (job.source or '') or 'Search:' in job.title %}
+                                        <i class="bi bi-search me-1"></i>Search Jobs
+                                        {% else %}
+                                        <i class="bi bi-box-arrow-up-right me-1"></i>View Job
+                                        {% endif %}
+                                    </a>
+                                    <button class="btn btn-sm btn-success apply-single-job" data-job-index="{{ loop.index0 }}" onclick="event.stopPropagation();">
+                                        <i class="bi bi-send me-1"></i>Apply
+                                    </button>
+                                </div>
+                            {% else %}
+                                <span class="text-muted small">No URL available</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <p class="card-text mt-3">{{ job.description }}</p>
+                    {% if job.requirements %}
+                    <div class="mt-3">
+                        <strong>Requirements:</strong>
+                        <ul class="mb-0">
+                            {% for req in job.requirements[:5] %}
+                            <li>{{ req }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    <small class="text-muted">
+                        <i class="bi bi-tag me-1"></i>Source: 
+                        {% if 'search-url' in (job.source or '') %}
+                        <span class="badge bg-success">Search Link</span>
+                        {% elif job.source == 'sample-generated' %}
+                        <span class="badge bg-warning text-dark">Sample</span>
+                        {% else %}
+                        {{ job.source or 'Unknown' }}
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-info">
+                <h5><i class="bi bi-info-circle me-2"></i>No Jobs Found</h5>
+                <p>Get started by adding jobs manually or searching for jobs.</p>
+                <div class="mt-3">
+                    <a href="/add_job" class="btn btn-success me-2">
+                        <i class="bi bi-plus-circle me-2"></i>Add Job Manually
+                    </a>
+                    <a href="/search" class="btn btn-primary">
+                        <i class="bi bi-search me-2"></i>Search Jobs
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div id="applyResults" class="mt-4" style="display: none;"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#selectAll').on('change', function() {
+        $('.job-checkbox').prop('checked', this.checked);
+        updateApplyButton();
+    });
+
+    $('.job-checkbox').on('change', function() {
+        updateApplyButton();
+        $('#selectAll').prop('checked', $('.job-checkbox:checked').length === $('.job-checkbox').length);
+    });
+
+    function updateApplyButton() {
+        const checked = $('.job-checkbox:checked').length;
+        const total = $('.job-checkbox').length;
+        
+        if (total > 0) {
+            // Always show these buttons when there are jobs
+            $('#generateCoversBtn').show();
+            $('#applyAllBtn').show().html(`<i class="bi bi-send-check me-1"></i>Apply All (${total})`);
+            if (checked > 0) {
+                $('#applySelectedBtn').show().html(`<i class="bi bi-send me-1"></i>Apply Selected (${checked})`);
+            } else {
+                $('#applySelectedBtn').show().html(`<i class="bi bi-send me-1"></i>Apply Selected`);
+            }
+        } else {
+            $('#generateCoversBtn, #applySelectedBtn, #applyAllBtn').hide();
+        }
+    }
+    
+    // Initialize button visibility
+    updateApplyButton();
+
+    $('#matchBtn').on('click', function() {
+        const btn = $(this);
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Matching...');
+        
+        const jobIndices = $('.job-checkbox:checked').map(function() {
+            return parseInt($(this).val());
+        }).get();
+
+        $.ajax({
+            url: '/match',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ job_indices: jobIndices }),
+            success: function(response) {
+                btn.prop('disabled', false).html('<i class="bi bi-graph-up me-1"></i>Match All');
+                if (response.success) {
+                    alert(`Successfully matched ${response.count} jobs!`);
+                    location.reload();
+                } else {
+                    alert('Matching failed: ' + (response.error || 'Unknown error'));
+                }
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).html('<i class="bi bi-graph-up me-1"></i>Match All');
+                alert('Error: ' + (xhr.responseJSON?.error || 'Matching failed'));
+            }
+        });
+    });
+
+    $('#generateCoversBtn').on('click', function() {
+        const checked = $('.job-checkbox:checked').length;
+        const jobIndices = $('.job-checkbox:checked').map(function() {
+            return parseInt($(this).val());
+        }).get();
+        
+        if (jobIndices.length === 0) {
+            jobIndices = $('.job-checkbox').map(function() {
+                return parseInt($(this).val());
+            }).get();
+        }
+        
+        const btn = $(this);
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Generating...');
+        
+        $.ajax({
+            url: '/apply',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                job_indices: jobIndices,
+                generate_only: true
+            }),
+            success: function(response) {
+                btn.prop('disabled', false).html('<i class="bi bi-file-text me-1"></i>Generate Covers');
+                if (response.success) {
+                    alert(`Generated ${response.results.length} cover letters!`);
+                    location.reload();
+                } else {
+                    alert('Error: ' + (response.error || 'Failed to generate'));
+                }
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).html('<i class="bi bi-file-text me-1"></i>Generate Covers');
+                alert('Error: ' + (xhr.responseJSON?.error || 'Failed'));
+            }
+        });
+    });
+    
+    $('#applyAllBtn').on('click', function() {
+        const total = $('.job-checkbox').length;
+        const jobIndices = $('.job-checkbox').map(function() {
+            return parseInt($(this).val());
+        }).get();
+        
+        // Get user email first
+        $.get('/api/user_email', function(emailResponse) {
+            if (!emailResponse.success || !emailResponse.email) {
+                alert('Please upload your resume first to set your email address.');
+                return;
+            }
+            
+            // Show review modal
+            showReviewModal(jobIndices, emailResponse.email, 'all');
+        }).fail(function() {
+            alert('Error loading your email. Please try again.');
+        });
+    });
+    
+    $('#applySelectedBtn').on('click', function() {
+        const checked = $('.job-checkbox:checked').length;
+        if (checked === 0) {
+            alert('Please select at least one job');
+            return;
+        }
+        
+        const jobIndices = $('.job-checkbox:checked').map(function() {
+            return parseInt($(this).val());
+        }).get();
+        
+        // Get user email first
+        $.get('/api/user_email', function(emailResponse) {
+            if (!emailResponse.success || !emailResponse.email) {
+                alert('Please upload your resume first to set your email address.');
+                return;
+            }
+            
+            // Show review modal
+            showReviewModal(jobIndices, emailResponse.email, 'selected');
+        }).fail(function() {
+            alert('Error loading your email. Please try again.');
+        });
+    });
+    
+    $('#applyBtn').on('click', function() {
+        if (!confirm('Apply to selected jobs? Cover letters will be generated.')) {
+            return;
+        }
+
+        const jobIndices = $('.job-checkbox:checked').map(function() {
+            return parseInt($(this).val());
+        }).get();
+
+        $.ajax({
+            url: '/apply',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                job_indices: jobIndices,
+                auto_apply: true  // Actually try to auto-submit using browser automation
+            }),
+            success: function(response) {
+                if (response.success) {
+                    displayApplyResults(response.results);
+                } else {
+                    alert('Application failed: ' + (response.error || 'Unknown error'));
+                }
+            }
+        });
+    });
+
+    function showReviewModal(jobIndices, userEmail, type) {
+        const jobs = {{ jobs|tojson|safe }};
+        const selectedJobs = jobIndices.map(i => jobs[i]).filter(j => j);
+        
+        // For now, show first job for editing (can expand to multiple later)
+        const firstJob = selectedJobs[0];
+        
+        let html = `<div class="mb-3"><h6><i class="bi bi-envelope me-2"></i>Application Email</h6>`;
+        html += `<div class="input-group">`;
+        html += `<input type="email" class="form-control" id="reviewEmail" value="${userEmail}">`;
+        html += `<button class="btn btn-outline-secondary" type="button" onclick="$('#reviewEmail').val('${userEmail}')"><i class="bi bi-arrow-counterclockwise"></i></button>`;
+        html += `</div>`;
+        html += `<small class="text-muted">This email will be used in your cover letters</small></div>`;
+        
+        html += `<div class="mb-3"><h6><i class="bi bi-briefcase me-2"></i>Job Details (Editable)</h6>`;
+        html += `<div class="card">`;
+        html += `<div class="card-body">`;
+        html += `<div class="mb-2"><label class="form-label small">Job Title</label>`;
+        html += `<input type="text" class="form-control" id="reviewJobTitle" value="${firstJob.title || ''}"></div>`;
+        html += `<div class="mb-2"><label class="form-label small">Company</label>`;
+        html += `<input type="text" class="form-control" id="reviewCompany" value="${firstJob.company || ''}"></div>`;
+        html += `<div class="mb-2"><label class="form-label small">Location</label>`;
+        html += `<input type="text" class="form-control" id="reviewLocation" value="${firstJob.location || ''}"></div>`;
+        html += `<div class="mb-2"><label class="form-label small">Job URL</label>`;
+        html += `<input type="url" class="form-control" id="reviewJobUrl" value="${firstJob.url || ''}"></div>`;
+        html += `</div></div></div>`;
+        
+        if (selectedJobs.length > 1) {
+            html += `<div class="mb-3"><small class="text-muted">Note: Editing applies to first job. ${selectedJobs.length - 1} more job(s) will use original details.</small></div>`;
+        }
+        
+        html += `<div class="mb-3"><h6><i class="bi bi-file-text me-2"></i>Cover Letter Preview</h6>`;
+        html += `<div class="card">`;
+        html += `<div class="card-body">`;
+        html += `<textarea class="form-control" id="reviewCoverLetter" rows="10" placeholder="Cover letter will be generated..."></textarea>`;
+        html += `<div class="mt-2">`;
+        html += `<button class="btn btn-sm btn-outline-primary" id="generateCoverBtn"><i class="bi bi-magic me-1"></i>Generate Cover Letter</button>`;
+        html += `<button class="btn btn-sm btn-outline-secondary ms-2" id="resetCoverBtn"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</button>`;
+        html += `</div></div></div></div>`;
+        
+        html += `<div class="alert alert-info">`;
+        html += `<i class="bi bi-info-circle me-2"></i>`;
+        html += `<strong>Auto-Apply Enabled:</strong> The system will attempt to automatically fill application forms using browser automation. `;
+        html += `A browser window will open for each job. Please review the filled form and click submit. `;
+        html += `If automation fails, you can complete the form manually.`;
+        html += `</div>`;
+        
+        $('#reviewContent').html(html);
+        $('#reviewApplicationModal').data('jobIndices', jobIndices);
+        $('#reviewApplicationModal').data('originalJob', firstJob);
+        
+        // Generate cover letter preview
+        generateCoverPreview(firstJob);
+        
+        const modal = new bootstrap.Modal(document.getElementById('reviewApplicationModal'));
+        modal.show();
+    }
+    
+    function generateCoverPreview(job) {
+        $('#generateCoverBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Generating...');
+        
+        $.ajax({
+            url: '/api/generate_cover',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                job_title: job.title,
+                company: job.company,
+                location: job.location,
+                description: job.description || '',
+                requirements: job.requirements || [],
+                url: job.url || ''
+            }),
+            success: function(response) {
+                if (response.success && response.cover_letter) {
+                    $('#reviewCoverLetter').val(response.cover_letter);
+                } else {
+                    $('#reviewCoverLetter').val('Error generating cover letter. Please try again.');
+                }
+                $('#generateCoverBtn').prop('disabled', false).html('<i class="bi bi-magic me-1"></i>Regenerate Cover Letter');
+            },
+            error: function() {
+                $('#reviewCoverLetter').val('Error generating cover letter. Please try again.');
+                $('#generateCoverBtn').prop('disabled', false).html('<i class="bi bi-magic me-1"></i>Regenerate Cover Letter');
+            }
+        });
+    }
+    
+    // Use event delegation for dynamically created buttons
+    $(document).on('click', '#generateCoverBtn', function() {
+        const originalJob = $('#reviewApplicationModal').data('originalJob');
+        if (originalJob) {
+            // Update job with edited values
+            originalJob.title = $('#reviewJobTitle').val();
+            originalJob.company = $('#reviewCompany').val();
+            originalJob.location = $('#reviewLocation').val();
+            originalJob.url = $('#reviewJobUrl').val();
+            generateCoverPreview(originalJob);
+        }
+    });
+    
+    $(document).on('click', '#resetCoverBtn', function() {
+        const originalJob = $('#reviewApplicationModal').data('originalJob');
+        if (originalJob) {
+            generateCoverPreview(originalJob);
+        }
+    });
+    
+    $('#confirmApplyBtn').on('click', function() {
+        const jobIndices = $('#reviewApplicationModal').data('jobIndices') || [];
+        const btn = $(this);
+        const modal = bootstrap.Modal.getInstance(document.getElementById('reviewApplicationModal'));
+        
+        // Get edited values
+        const editedEmail = $('#reviewEmail').val();
+        const editedCoverLetter = $('#reviewCoverLetter').val();
+        const editedJob = {
+            title: $('#reviewJobTitle').val(),
+            company: $('#reviewCompany').val(),
+            location: $('#reviewLocation').val(),
+            url: $('#reviewJobUrl').val()
+        };
+        
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Preparing...');
+        
+        $.ajax({
+            url: '/apply',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                job_indices: jobIndices,
+                auto_apply: true,  // Actually try to auto-submit using browser automation
+                generate_covers: true,  // Generate covers as part of auto-submit process
+                edited_job: editedJob,  // Send edited job details
+                edited_email: editedEmail,  // Send edited email
+                edited_cover_letter: editedCoverLetter  // Send edited cover letter
+            }),
+            success: function(response) {
+                modal.hide();
+                btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i>Confirm & Prepare Application');
+                
+                if (response.success) {
+                    displayApplyResults(response.results, response, `Application Materials Prepared - ${response.results.length} jobs`);
+                } else {
+                    alert('Error: ' + (response.error || 'Failed'));
+                }
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i>Confirm & Prepare Application');
+                alert('Error: ' + (xhr.responseJSON?.error || 'Failed'));
+            }
+        });
+    });
+
+    function displayApplyResults(results, response, title) {
+        const userEmail = (response && response.user_email) ? response.user_email : 'Not set';
+        let html = `<div class="card border-0 shadow-sm"><div class="card-body">`;
+        html += `<h5 class="mb-3">${title || 'Application Results'}</h5>`;
+        
+        // Check if any jobs have browser automation
+        const hasBrowserAutomation = results.some(r => r.browser_open);
+        const hasManualRequired = results.some(r => r.requires_manual);
+        
+        // Check if any were actually submitted
+        const hasSubmitted = results.some(r => r.submitted || r.status === 'submitted');
+        
+        if (hasSubmitted) {
+            html += `<div class="alert alert-success mb-3">`;
+            html += `<i class="bi bi-check-circle me-2"></i><strong>✅ Applications Submitted Automatically!</strong> `;
+            html += `The AI has filled and submitted your applications. Check the browser windows to confirm.`;
+            html += `</div>`;
+        } else if (hasBrowserAutomation) {
+            html += `<div class="alert alert-info mb-3">`;
+            html += `<i class="bi bi-info-circle me-2"></i><strong>Browser Automation Active:</strong> `;
+            html += `Application forms are being processed automatically. Check browser windows for status.`;
+            html += `</div>`;
+        } else if (hasManualRequired) {
+            html += `<div class="alert alert-warning mb-3">`;
+            html += `<i class="bi bi-exclamation-triangle me-2"></i><strong>Manual Submission Required:</strong> `;
+            html += `Some jobs could not be auto-filled. Please submit manually using the job posting links.`;
+            html += `</div>`;
+        }
+        
+        if (response && response.note) {
+            html += `<div class="alert alert-info mb-3">`;
+            html += `<i class="bi bi-info-circle me-2"></i>${response.note}`;
+            html += `</div>`;
+        }
+        
+        html += `<div class="mb-3"><strong><i class="bi bi-envelope me-1"></i>Email Used:</strong> ${userEmail}</div>`;
+        
+        results.forEach(function(result) {
+            const alertClass = result.status === 'prepared' ? 'success' : 
+                              result.status === 'error' ? 'danger' : 'warning';
+            html += `<div class="alert alert-${alertClass} mb-2">`;
+            html += `<strong>${result.job_title}</strong> at <strong>${result.company}</strong><br>`;
+            html += `<small>Status: <strong>${result.status}</strong> | ${result.message}</small>`;
+            if (result.cover_letter_file) {
+                html += `<br><a href="/static/cover_letters/${result.cover_letter_file}" target="_blank" class="btn btn-sm btn-outline-primary mt-2" download>`;
+                html += `<i class="bi bi-download me-1"></i>Download Cover Letter</a>`;
+            }
+            
+            if (result.submitted || result.status === 'submitted') {
+                html += `<span class="badge bg-success ms-2 mt-2"><i class="bi bi-check-circle me-1"></i>✅ SUBMITTED AUTOMATICALLY</span>`;
+            } else if (result.browser_open) {
+                html += `<span class="badge bg-info ms-2 mt-2"><i class="bi bi-browser me-1"></i>Browser Open - Check Status</span>`;
+            } else if (result.job_url && !result.job_url.includes('example.com')) {
+                html += `<a href="${result.job_url}" target="_blank" class="btn btn-sm btn-outline-success mt-2 ms-2">`;
+                html += `<i class="bi bi-box-arrow-up-right me-1"></i>Go to Job Posting</a>`;
+            }
+            html += '</div>';
+        });
+        html += '</div></div>';
+        $('#applyResults').html(html).show();
+        
+        $('html, body').animate({
+            scrollTop: $('#applyResults').offset().top - 100
+        }, 500);
+    }
+});
+</script>
+{% endblock %}

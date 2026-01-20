@@ -1,0 +1,23 @@
+{
+  "profile_file": "profile.json",
+  "search_keywords": [
+    "software engineer",
+    "data scientist",
+    "research scientist",
+    "product manager",
+    "marketing manager",
+    "business analyst"
+  ],
+  "location": "Singapore",
+  "min_match_score": 0.5,
+  "auto_apply": false,
+  "max_jobs_per_search": 50,
+  "api_keys": {
+    "linkedin": "",
+    "indeed": "",
+    "glassdoor": ""
+  },
+  "cover_letter_style": "professional",
+  "save_cover_letters": true,
+  "application_delay_seconds": 1
+}

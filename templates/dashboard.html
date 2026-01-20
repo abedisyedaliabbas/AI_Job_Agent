@@ -1,0 +1,1009 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AI Job Agent{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
+            <p class="text-muted mb-0">Your job search overview and insights</p>
+        </div>
+        <a href="/auth/logout" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-box-arrow-right me-1"></i>Logout
+        </a>
+    </div>
+    
+    {% if not stats.profile_loaded %}
+    <!-- Upload Prompt -->
+    <div class="card border-warning mb-4">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-upload display-1 text-warning mb-3"></i>
+            <h4 class="fw-bold mb-3">Upload Your Resume to Get Started</h4>
+            <p class="text-muted mb-4">Upload your resume once and we'll extract your skills, experience, and help you find matching jobs worldwide.</p>
+            <a href="/upload" class="btn btn-primary btn-lg">
+                <i class="bi bi-upload me-2"></i>Upload Resume
+            </a>
+        </div>
+    </div>
+    {% else %}
+    
+    <!-- AI Agent Quick Start - Prominent -->
+    <div class="card border-success shadow-lg mb-4" style="border-width: 3px; background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%);">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-robot display-5 text-success me-3"></i>
+                        <div>
+                            <h3 class="mb-1 fw-bold">🤖 AI Job Agent</h3>
+                            <p class="text-muted mb-0">Let AI find matching jobs, generate cover letters, and prepare applications for you.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-success btn-lg px-4" id="dashboardAutoSearchBtn" style="font-size: 1.1rem;">
+                        <i class="bi bi-robot me-2"></i>🚀 Start AI Agent
+                    </button>
+                </div>
+            </div>
+            <div id="dashboardAutoSearchProgress" class="mt-3" style="display: none;">
+                <div class="alert alert-info d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-3" role="status"></div>
+                    <div>
+                        <strong>AI Agent Working...</strong><br>
+                        <span id="dashboardAutoSearchStatus" class="small">Searching for jobs worldwide...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Keyword Review Modal -->
+    <div class="modal fade" id="keywordReviewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-search me-2"></i>Review & Edit Search Keywords</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Tip:</strong> These keywords are extracted from your resume. Edit them to improve job search results. Add specific terms related to the jobs you want.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Search Keywords (one per line or comma-separated)</label>
+                        <textarea class="form-control" id="reviewKeywords" rows="6" placeholder="e.g., computational chemistry, machine learning, python, research scientist"></textarea>
+                        <small class="text-muted">The AI agent will search for jobs matching these keywords. Make them specific to your field!</small>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="resetKeywordsBtn">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset to Suggested
+                        </button>
+                        <div>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="confirmKeywordsBtn">
+                                <i class="bi bi-check-circle me-1"></i>Continue to Country Selection
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Country Selection Modal -->
+    <div class="modal fade" id="countrySelectionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="bi bi-globe me-2"></i>Select Country for Job Search</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Choose which country you want to search for jobs:</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Country/Location</label>
+                        <select class="form-select form-select-lg" id="jobSearchCountry">
+                            <option value="Worldwide">🌍 Worldwide (All Countries)</option>
+                            <optgroup label="Popular">
+                                <option value="Singapore">🇸🇬 Singapore</option>
+                                <option value="United States">🇺🇸 United States</option>
+                                <option value="United Kingdom">🇬🇧 United Kingdom</option>
+                                <option value="Australia">🇦🇺 Australia</option>
+                                <option value="Canada">🇨🇦 Canada</option>
+                                <option value="Germany">🇩🇪 Germany</option>
+                                <option value="Japan">🇯🇵 Japan</option>
+                                <option value="Hong Kong">🇭🇰 Hong Kong</option>
+                                <option value="Malaysia">🇲🇾 Malaysia</option>
+                                <option value="Thailand">🇹🇭 Thailand</option>
+                            </optgroup>
+                            <optgroup label="Asia">
+                                <option value="China">🇨🇳 China</option>
+                                <option value="India">🇮🇳 India</option>
+                                <option value="South Korea">🇰🇷 South Korea</option>
+                                <option value="Taiwan">🇹🇼 Taiwan</option>
+                                <option value="Indonesia">🇮🇩 Indonesia</option>
+                                <option value="Philippines">🇵🇭 Philippines</option>
+                                <option value="Vietnam">🇻🇳 Vietnam</option>
+                            </optgroup>
+                            <optgroup label="Europe">
+                                <option value="France">🇫🇷 France</option>
+                                <option value="Netherlands">🇳🇱 Netherlands</option>
+                                <option value="Switzerland">🇨🇭 Switzerland</option>
+                                <option value="Sweden">🇸🇪 Sweden</option>
+                                <option value="Norway">🇳🇴 Norway</option>
+                                <option value="Denmark">🇩🇰 Denmark</option>
+                                <option value="Spain">🇪🇸 Spain</option>
+                                <option value="Italy">🇮🇹 Italy</option>
+                            </optgroup>
+                            <optgroup label="Other">
+                                <option value="New Zealand">🇳🇿 New Zealand</option>
+                                <option value="United Arab Emirates">🇦🇪 United Arab Emirates</option>
+                                <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+                                <option value="Israel">🇮🇱 Israel</option>
+                                <option value="Brazil">🇧🇷 Brazil</option>
+                                <option value="South Africa">🇿🇦 South Africa</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="alert alert-info small mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Tip:</strong> You can search "Worldwide" to find jobs in all countries, or select a specific country for targeted results.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirmCountrySearch">
+                        <i class="bi bi-search me-2"></i>Start Search
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Key Metrics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card text-center h-100 shadow-sm border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body text-white">
+                    <div class="display-4 fw-bold mb-2">{{ stats.total_jobs or 0 }}</div>
+                    <p class="mb-0 opacity-75">Jobs Found</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100 shadow-sm border-0" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="card-body text-white">
+                    <div class="display-4 fw-bold mb-2">{{ stats.total_applications or 0 }}</div>
+                    <p class="mb-0 opacity-75">Applications</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100 shadow-sm border-0" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="card-body text-white">
+                    <div class="display-4 fw-bold mb-2">{{ skill_stats.total_skills if skill_stats else 0 }}</div>
+                    <p class="mb-0 opacity-75">Skills</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100 shadow-sm border-0" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <div class="card-body text-white">
+                    <div class="display-4 fw-bold mb-2">{{ resume_quality.score|int if resume_quality else 0 }}</div>
+                    <p class="mb-0 opacity-75">Quality Score</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <!-- Resume Quality Chart -->
+        {% if resume_quality %}
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-star-fill me-2"></i>Resume Quality Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    <div style="position: relative; height: 250px;">
+                        <canvas id="qualityChart"></canvas>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <span class="badge bg-{% if resume_quality.score >= 80 %}success{% elif resume_quality.score >= 60 %}info{% elif resume_quality.score >= 40 %}warning{% else %}secondary{% endif %} fs-6 px-3 py-2">
+                            {{ resume_quality.level }} ({{ resume_quality.score }}/100)
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Profile Completeness Chart -->
+        {% if resume_quality %}
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-check-circle me-2"></i>Profile Completeness</h5>
+                </div>
+                <div class="card-body">
+                    <div style="position: relative; height: 250px;">
+                        <canvas id="completenessChart"></canvas>
+                    </div>
+                    <div class="mt-3">
+                        <div class="progress" style="height: 35px; border-radius: 10px;">
+                            <div class="progress-bar bg-info progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ resume_quality.completeness }}%">
+                                <strong class="fs-6">{{ resume_quality.completeness }}% Complete</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Skills Distribution Chart -->
+    {% if skill_stats and (skill_stats.skills_by_category or skill_stats.top_skills) %}
+    <div class="row g-4 mb-4">
+        {% if skill_stats.skills_by_category and skill_stats.skills_by_category|length > 0 %}
+        <div class="col-md-8">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-star me-2"></i>Skills by Category</h5>
+                </div>
+                <div class="card-body">
+                    <div style="position: relative; height: 300px;">
+                        <canvas id="skillsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        <div class="col-md-{% if skill_stats.skills_by_category and skill_stats.skills_by_category|length > 0 %}4{% else %}12{% endif %}">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Top Skills</h5>
+                </div>
+                <div class="card-body">
+                    {% if skill_stats.top_skills and skill_stats.top_skills|length > 0 %}
+                    <div style="position: relative; height: 300px;">
+                        <canvas id="topSkillsChart"></canvas>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-exclamation-circle display-6 mb-3"></i>
+                        <p>No skills data available</p>
+                        <p class="small">Re-upload your resume to extract skills</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif skill_stats and skill_stats.top_skills %}
+    <!-- Fallback: Show top skills as badges -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-star me-2"></i>Your Top Skills</h5>
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap gap-2">
+                {% for skill in skill_stats.top_skills[:20] %}
+                <span class="badge bg-primary-subtle text-primary border border-primary p-2 fs-6">
+                    {{ skill }}
+                    {% if skill_stats.skill_job_matches and skill in skill_stats.skill_job_matches %}
+                    <span class="badge bg-primary ms-1">{{ skill_stats.skill_job_matches[skill] }}</span>
+                    {% endif %}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Filters and Country Demand Chart -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-globe me-2"></i>Job Opportunities by Country</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-light" onclick="filterDashboard('all')">All</button>
+                        <button type="button" class="btn btn-light" onclick="filterDashboard('country')">By Country</button>
+                        <button type="button" class="btn btn-light" onclick="filterDashboard('skills')">By Skills</button>
+                        <button type="button" class="btn btn-light" onclick="filterDashboard('date')">By Date</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if country_demand and country_demand|length > 0 %}
+                    <div style="position: relative; height: 400px;">
+                        <canvas id="countryChart"></canvas>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-globe display-6 mb-3"></i>
+                        <p>No country data available. Search for jobs to see opportunities by country.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Global Market Stats with Filters -->
+    {% if global_market_stats and global_market_stats.top_countries %}
+    <div class="card mb-4 shadow-sm border-success">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-globe me-2"></i>Global Job Market Insights</h5>
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-light active" onclick="filterGlobalStats('all', this)">All</button>
+                <button type="button" class="btn btn-light" onclick="filterGlobalStats('top3', this)">Top 3</button>
+                <button type="button" class="btn btn-light" onclick="filterGlobalStats('asia', this)">Asia</button>
+                <button type="button" class="btn btn-light" onclick="filterGlobalStats('europe', this)">Europe</button>
+            </div>
+        </div>
+        <div class="card-body" id="globalStatsContent">
+            <div class="row g-3">
+                {% for country_data in global_market_stats.top_countries[:6] %}
+                <div class="col-md-4 country-stat-item" data-region="{{ 'asia' if country_data.country in ['Singapore', 'Australia', 'Japan', 'Hong Kong', 'Malaysia', 'Thailand'] else 'europe' if country_data.country in ['United Kingdom', 'Germany', 'France'] else 'americas' }}">
+                    <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded border shadow-sm">
+                        <div>
+                            <i class="bi bi-geo-alt-fill text-primary me-2"></i>
+                            <strong>{{ country_data.country }}</strong>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold text-success fs-5">{{ "{:,}".format(country_data.jobs) }}</div>
+                            <small class="text-success"><i class="bi bi-arrow-up"></i> {{ country_data.growth }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Quick Actions -->
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="/upload" class="btn btn-outline-primary">
+                            <i class="bi bi-upload me-2"></i>Update Resume
+                        </a>
+                        <a href="/jobs" class="btn btn-outline-success">
+                            <i class="bi bi-briefcase me-2"></i>My Jobs ({{ stats.total_jobs }})
+                        </a>
+                        <a href="/profile" class="btn btn-outline-info">
+                            <i class="bi bi-person-circle me-2"></i>View Profile
+                        </a>
+                        <a href="/add_job" class="btn btn-outline-secondary">
+                            <i class="bi bi-plus-circle me-2"></i>Add Job
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-lightbulb me-2"></i>Profile Summary</h5>
+                </div>
+                <div class="card-body">
+                    {% if profile %}
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-primary-subtle rounded">
+                                <div class="display-6 text-primary mb-1">{{ profile.experience|length if profile.experience else 0 }}</div>
+                                <small class="text-muted">Experience</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-success-subtle rounded">
+                                <div class="display-6 text-success mb-1">{{ profile.education|length if profile.education else 0 }}</div>
+                                <small class="text-muted">Education</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-warning-subtle rounded">
+                                <div class="display-6 text-warning mb-1">{{ profile.publications|length if profile.publications else 0 }}</div>
+                                <small class="text-muted">Publications</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-info-subtle rounded">
+                                <div class="fw-bold text-info mb-1">{{ profile.location or 'N/A' }}</div>
+                                <small class="text-muted">Location</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Dashboard filtering functions - MUST be in global scope for onclick handlers
+window.filterDashboard = function(filterType) {
+    console.log('[DASHBOARD] Filtering by:', filterType);
+    // Update button states
+    const btnGroup = document.querySelector('.card-header .btn-group');
+    if (btnGroup) {
+        btnGroup.querySelectorAll('.btn').forEach(btn => {
+            btn.classList.remove('active');
+            const btnText = btn.textContent.trim().toLowerCase();
+            if (btnText === filterType.toLowerCase() || 
+                (filterType === 'all' && btnText === 'all')) {
+                btn.classList.add('active');
+            }
+        });
+    }
+    
+    // Filter country chart visibility (placeholder - implement actual filtering)
+    const countryChart = document.getElementById('countryChart');
+    if (countryChart) {
+        countryChart.style.display = filterType === 'all' || filterType === 'country' ? '' : 'none';
+    }
+};
+
+// Wait for Chart.js to load
+function initDashboardCharts() {
+    // Check if Chart.js is loaded
+    if (typeof Chart === 'undefined') {
+        console.error('[DASHBOARD] Chart.js not loaded! Waiting...');
+        setTimeout(initDashboard, 100);
+        return;
+    }
+    
+    console.log('[DASHBOARD] Chart.js loaded, initializing charts...');
+    
+    // Resume Quality Chart
+    {% if resume_quality %}
+    try {
+        const qualityCtx = document.getElementById('qualityChart');
+        if (qualityCtx) {
+            const expCount = {{ resume_quality.experience if resume_quality.experience else 0 }};
+            const eduCount = {{ resume_quality.education if resume_quality.education else 0 }};
+            const pubCount = {{ resume_quality.publications if resume_quality.publications else 0 }};
+            const skillCount = {{ resume_quality.skills if resume_quality.skills else 0 }};
+            
+            // Only create chart if we have data
+            if (expCount > 0 || eduCount > 0 || pubCount > 0 || skillCount > 0) {
+                new Chart(qualityCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Experience', 'Education', 'Publications', 'Skills'],
+                        datasets: [{
+                            data: [expCount, eduCount, pubCount, skillCount],
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
+                    borderWidth: 3,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        padding: 10
+                    }
+                }
+            }
+        });
+            } else {
+                console.warn('[DASHBOARD] No quality data to display');
+            }
+        } else {
+            console.error('[DASHBOARD] Quality chart canvas or Chart.js not found');
+        }
+    } catch(err) {
+        console.error('[DASHBOARD] Quality chart error:', err);
+    }
+    {% else %}
+    console.warn('[DASHBOARD] resume_quality not available');
+    {% endif %}
+
+    // Profile Completeness Chart
+    {% if resume_quality %}
+    try {
+        const completenessCtx = document.getElementById('completenessChart');
+        if (completenessCtx && typeof Chart !== 'undefined') {
+            const completeness = {{ resume_quality.completeness if resume_quality.completeness else 0 }};
+            const expCount = {{ resume_quality.experience if resume_quality.experience else 0 }};
+            const eduCount = {{ resume_quality.education if resume_quality.education else 0 }};
+            const skillCount = {{ resume_quality.skills if resume_quality.skills else 0 }};
+            const pubCount = {{ resume_quality.publications if resume_quality.publications else 0 }};
+            
+            new Chart(completenessCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Basic Info', 'Experience', 'Education', 'Skills', 'Publications'],
+                    datasets: [{
+                        label: 'Completeness %',
+                        data: [
+                            Math.min(Math.floor(completeness / 4), 100),
+                            Math.min(expCount * 10, 100),
+                            Math.min(eduCount * 15, 100),
+                            Math.min(skillCount * 2, 100),
+                            Math.min(pubCount * 5, 100)
+                        ],
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'],
+                    borderRadius: 8,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        } else {
+            console.error('[DASHBOARD] Completeness chart canvas or Chart.js not found');
+        }
+    } catch(err) {
+        console.error('[DASHBOARD] Completeness chart error:', err);
+    }
+    {% endif %}
+
+    // Skills by Category Chart
+    {% if skill_stats and skill_stats.skills_by_category and skill_stats.skills_by_category|length > 0 %}
+    try {
+        const skillsCtx = document.getElementById('skillsChart');
+        if (skillsCtx && typeof Chart !== 'undefined') {
+            const categories = [{% for category in skill_stats.skills_by_category.keys() %}'{{ category|replace("'", "\\'") }}',{% endfor %}];
+            const counts = [{% for category, skills in skill_stats.skills_by_category.items() %}{{ skills|length }},{% endfor %}];
+            
+            console.log('[DASHBOARD] Skills chart data:', categories, counts);
+            
+            if (categories.length > 0 && counts.length > 0 && categories[0] !== '') {
+        
+        // Color palette for different categories
+        const colors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#84cc16', '#f97316'];
+        
+        new Chart(skillsCtx, {
+            type: 'bar',
+            data: {
+                labels: categories,
+                datasets: [{
+                    label: 'Skills Count',
+                    data: counts,
+                    backgroundColor: categories.map((_, i) => colors[i % colors.length]),
+                    borderRadius: 8,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            precision: 0
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y + ' skills';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+            } else {
+                console.warn('[DASHBOARD] No skills category data');
+            }
+        }
+    } catch(err) {
+        console.error('[DASHBOARD] Skills chart error:', err);
+    }
+    {% endif %}
+
+    // Top Skills Pie Chart - Show top skills by frequency/importance
+    {% if skill_stats and skill_stats.top_skills and skill_stats.top_skills|length > 0 %}
+    try {
+        const topSkillsCtx = document.getElementById('topSkillsChart');
+        if (topSkillsCtx && typeof Chart !== 'undefined') {
+            const topSkills = [{% for skill in skill_stats.top_skills[:8] %}'{{ skill|replace("'", "\\'")|truncate(20) }}',{% endfor %}];
+            // Use job matches if available, otherwise use equal distribution for visualization
+            let skillData = [{% for skill in skill_stats.top_skills[:8] %}{{ skill_stats.skill_job_matches.get(skill, 1) if skill_stats.skill_job_matches and skill_stats.skill_job_matches.get(skill, 0) > 0 else 1 }},{% endfor %}];
+        
+        // If all values are 0 or 1, use a better distribution
+        const maxVal = Math.max(...skillData);
+        if (maxVal <= 1) {
+            skillData = skillData.map((val, idx) => 10 - idx); // Decreasing importance
+        }
+        
+        new Chart(topSkillsCtx, {
+            type: 'doughnut',
+            data: {
+                labels: topSkills,
+                datasets: [{
+                    data: skillData,
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#84cc16', '#f97316'],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 8,
+                            font: {
+                                size: 10
+                            },
+                            boxWidth: 12
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return label + ': ' + percentage + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        } else {
+            console.error('[DASHBOARD] Top skills chart canvas or Chart.js not found');
+        }
+    } catch(err) {
+        console.error('[DASHBOARD] Top skills chart error:', err);
+    }
+    {% endif %}
+
+    // Country Demand Chart
+    {% if country_demand and country_demand|length > 0 %}
+    const countryCtx = document.getElementById('countryChart');
+    if (countryCtx) {
+        const countries = [{% for country, count in country_demand[:10] %}'{{ country|replace("'", "\\'") }}',{% endfor %}];
+        const jobCounts = [{% for country, count in country_demand[:10] %}{{ count }},{% endfor %}];
+        
+        new Chart(countryCtx, {
+            type: 'bar',
+            data: {
+                labels: countries,
+                datasets: [{
+                    label: 'Jobs',
+                    data: jobCounts,
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 8,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.x + ' jobs';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+    
+    window.filterGlobalStats = function(filterType, button) {
+        // Update button states
+        document.querySelectorAll('#globalStatsContent').forEach(container => {
+            const buttons = container.closest('.card').querySelectorAll('.btn-group .btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            if (button) button.classList.add('active');
+        });
+        
+        const items = document.querySelectorAll('.country-stat-item');
+        items.forEach((item, index) => {
+            if (filterType === 'all') {
+                item.style.display = '';
+            } else if (filterType === 'top3') {
+                item.style.display = index < 3 ? '' : 'none';
+            } else if (filterType === 'asia') {
+                item.style.display = item.dataset.region === 'asia' ? '' : 'none';
+            } else if (filterType === 'europe') {
+                item.style.display = item.dataset.region === 'europe' ? '' : 'none';
+            }
+        });
+    };
+}
+
+// Initialize charts when DOM and Chart.js are ready
+$(document).ready(function() {
+    console.log('[DASHBOARD] DOM ready');
+    // Wait a bit for Chart.js to load from CDN
+    setTimeout(initDashboardCharts, 200);
+});
+
+// Dashboard AI Agent Button - Separate ready block
+$(document).ready(function() {
+    console.log('[DASHBOARD] JavaScript loaded');
+    let selectedCountry = 'Worldwide'; // Default
+    let selectedKeywords = []; // Store selected keywords
+    
+    // Check if button exists
+    const btn = $('#dashboardAutoSearchBtn');
+    if (btn.length === 0) {
+        console.error('[DASHBOARD] AI Agent button not found!');
+        return;
+    }
+    console.log('[DASHBOARD] AI Agent button found');
+    
+    // Test button click immediately
+    btn.css('cursor', 'pointer');
+    console.log('[DASHBOARD] Button ready, jQuery version:', $.fn.jquery);
+    
+    // Show keyword review modal when AI agent button is clicked
+    // Remove any existing handlers first to prevent duplicates
+    btn.off('click');
+    
+    // Add click handler
+    btn.on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('[DASHBOARD] AI Agent button clicked');
+        // First, get suggested keywords from profile
+        $.ajax({
+            url: '/api/get_keywords',
+            method: 'GET',
+            success: function(response) {
+                if (response.success && response.keywords) {
+                    // Populate keywords textarea
+                    $('#reviewKeywords').val(response.keywords.join(', '));
+                    selectedKeywords = response.keywords;
+                } else {
+                    // Fallback: use generic keywords
+                    $('#reviewKeywords').val('researcher, scientist, engineer');
+                    selectedKeywords = ['researcher', 'scientist', 'engineer'];
+                }
+                
+                // Show keyword review modal
+                try {
+                    const keywordModalEl = document.getElementById('keywordReviewModal');
+                    if (keywordModalEl) {
+                        const keywordModal = new bootstrap.Modal(keywordModalEl);
+                        keywordModal.show();
+                        console.log('[DASHBOARD] Keyword modal shown');
+                    } else {
+                        console.error('[DASHBOARD] Keyword modal element not found');
+                        alert('Error: Modal not found. Please refresh the page.');
+                    }
+                } catch(err) {
+                    console.error('[DASHBOARD] Modal error:', err);
+                    alert('Error opening keyword review. Please refresh the page.');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('[DASHBOARD] Keywords API error:', error, xhr);
+                // On error, use generic keywords
+                $('#reviewKeywords').val('researcher, scientist, engineer');
+                selectedKeywords = ['researcher', 'scientist', 'engineer'];
+                
+                // Show keyword review modal
+                try {
+                    const keywordModalEl = document.getElementById('keywordReviewModal');
+                    if (keywordModalEl) {
+                        const keywordModal = new bootstrap.Modal(keywordModalEl);
+                        keywordModal.show();
+                        console.log('[DASHBOARD] Keyword modal shown (fallback)');
+                    } else {
+                        console.error('[DASHBOARD] Keyword modal element not found');
+                        alert('Error: Modal not found. Please refresh the page.');
+                    }
+                } catch(err) {
+                    console.error('[DASHBOARD] Modal error:', err);
+                    alert('Error opening keyword review. Please refresh the page.');
+                }
+            }
+        });
+    });
+    
+    // Reset keywords button
+    $('#resetKeywordsBtn').on('click', function(e) {
+        e.preventDefault();
+        console.log('[DASHBOARD] Reset keywords clicked');
+        $.ajax({
+            url: '/api/get_keywords',
+            method: 'GET',
+            success: function(response) {
+                if (response.success && response.keywords) {
+                    $('#reviewKeywords').val(response.keywords.join(', '));
+                    selectedKeywords = response.keywords;
+                }
+            }
+        });
+    });
+    
+    // Confirm keywords and proceed to country selection
+    $('#confirmKeywordsBtn').on('click', function(e) {
+        e.preventDefault();
+        console.log('[DASHBOARD] Confirm keywords clicked');
+        // Parse keywords from textarea (comma or newline separated)
+        const keywordsText = $('#reviewKeywords').val().trim();
+        if (!keywordsText) {
+            alert('Please enter at least one keyword');
+            return;
+        }
+        
+        // Split by comma or newline, clean and filter
+        selectedKeywords = keywordsText
+            .split(/[,\n]/)
+            .map(k => k.trim())
+            .filter(k => k.length > 0);
+        
+        if (selectedKeywords.length === 0) {
+            alert('Please enter at least one valid keyword');
+            return;
+        }
+        
+        // Hide keyword modal and show country selection
+        bootstrap.Modal.getInstance(document.getElementById('keywordReviewModal')).hide();
+        
+        // Set default to user's profile location if available
+        {% if profile and profile.location %}
+        $('#jobSearchCountry').val('{{ profile.location }}');
+        selectedCountry = '{{ profile.location }}';
+        {% endif %}
+        
+        const countryModal = new bootstrap.Modal(document.getElementById('countrySelectionModal'));
+        countryModal.show();
+    });
+    
+    // Handle country selection confirmation
+    $('#confirmCountrySearch').on('click', function() {
+        selectedCountry = $('#jobSearchCountry').val();
+        bootstrap.Modal.getInstance(document.getElementById('countrySelectionModal')).hide();
+        
+        const btn = $('#dashboardAutoSearchBtn');
+        const progressDiv = $('#dashboardAutoSearchProgress');
+        const statusSpan = $('#dashboardAutoSearchStatus');
+        
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Starting...');
+        progressDiv.show();
+        statusSpan.text(`AI Agent is analyzing your resume and searching for matching jobs in ${selectedCountry}...`);
+        
+        $.ajax({
+            url: '/api/auto_search',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                max_jobs: 15,
+                min_match_score: 0.4,
+                auto_apply: false,
+                location: selectedCountry,
+                keywords: selectedKeywords  // Send custom keywords
+            }),
+            success: function(response) {
+                if (response.success) {
+                    let statusHtml = `<div class="alert alert-success mb-2">
+                        <strong>✅ AI Agent Complete!</strong><br>
+                        Found ${response.jobs_found || 0} jobs | 
+                        Matched ${response.jobs_matched || 0} jobs | 
+                        Generated ${response.cover_letters_generated || 0} cover letters
+                    </div>`;
+                    
+                    if (response.jobs && response.jobs.length > 0) {
+                        statusHtml += `<div class="small mb-2"><strong>Top Matches:</strong><ul class="mb-0">`;
+                        response.jobs.slice(0, 3).forEach(job => {
+                            const matchPct = ((job.match_score || 0.5) * 100).toFixed(0);
+                            statusHtml += `<li>${job.title} at ${job.company} (${matchPct}% match)</li>`;
+                        });
+                        statusHtml += `</ul></div>`;
+                    }
+                    
+                    statusHtml += `<a href="/jobs" class="btn btn-primary btn-sm">
+                        <i class="bi bi-briefcase me-2"></i>View All ${response.jobs_matched || 0} Jobs
+                    </a>`;
+                    
+                    statusSpan.html(statusHtml);
+                    btn.prop('disabled', false).html('<i class="bi bi-robot me-2"></i>🚀 Start AI Agent');
+                } else {
+                    let errorHtml = `<div class="alert alert-warning">
+                        <strong>⚠️ No Jobs Found</strong><br>
+                        ${response.message || response.error || 'Job boards often block automated scraping.'}
+                    </div>`;
+                    
+                    if (response.jobs_found === 0) {
+                        errorHtml += `
+                            <div class="alert alert-info mt-2">
+                                <strong>💡 What to do:</strong><br>
+                                <ul class="mb-0 small">
+                                    <li>Use <a href="/add_job" class="alert-link">Add Job</a> to add jobs by URL</li>
+                                    <li>Search manually on <a href="https://www.indeed.com" target="_blank" class="alert-link">Indeed</a> or <a href="https://www.linkedin.com/jobs" target="_blank" class="alert-link">LinkedIn</a></li>
+                                    <li>Copy job URLs and use the "Add Job" feature</li>
+                                </ul>
+                            </div>
+                        `;
+                    }
+                    
+                    statusSpan.html(errorHtml);
+                    btn.prop('disabled', false).html('<i class="bi bi-robot me-2"></i>🚀 Start AI Agent');
+                }
+            },
+            error: function(xhr) {
+                statusSpan.html(`<div class="alert alert-danger">Error: ${xhr.responseJSON?.error || 'Failed to start AI agent. Please try again.'}</div>`);
+                btn.prop('disabled', false).html('<i class="bi bi-robot me-2"></i>🚀 Start AI Agent');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

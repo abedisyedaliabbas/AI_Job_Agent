@@ -1,0 +1,50 @@
+# Generated files
+profile.json
+jobs.json
+applications_log.json
+example_jobs.json
+cover_letter_*.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# API keys and secrets
+.env
+config.local.json
+secrets.json
+
+# Logs
+*.log
+
+# User data (per-user files)
+data/users.json
+data/profile_*.json
+data/jobs_*.json
+uploads/*.pdf
+uploads/*.docx
+uploads/*.doc
+uploads/*.txt
+static/cover_letters/*.txt
+
+# Deployment
+.railway/
+.render/

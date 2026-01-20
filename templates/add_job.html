@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block title %}Add Job - AI Job Agent{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="text-center mb-5">
+        <h1 class="gradient-text mb-3">Add Job</h1>
+        <p class="text-muted">Paste a job URL and we'll extract all the details automatically</p>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <label for="jobUrl" class="form-label fw-bold">
+                            <i class="bi bi-link-45deg me-2"></i>Job URL
+                        </label>
+                        <div class="input-group">
+                            <input type="url" class="form-control form-control-lg" id="jobUrl" 
+                                   placeholder="https://www.linkedin.com/jobs/view/... or https://jobs.smartrecruiters.com/..." 
+                                   value="">
+                            <button class="btn btn-primary" type="button" id="extractBtn">
+                                <i class="bi bi-magic me-2"></i>Extract & Generate Cover
+                            </button>
+                        </div>
+                        <small class="text-muted">Paste any job URL - we'll extract details, match to your profile, and generate cover letter</small>
+                    </div>
+                    
+                    <div id="extractingSpinner" style="display: none;" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Processing...</span>
+                        </div>
+                        <p class="mt-3 text-muted">
+                            <span id="processingStep">Extracting job details...</span>
+                        </p>
+                    </div>
+                    
+                    <div id="coverLetterPreview" style="display: none;" class="card mt-3 border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0"><i class="bi bi-file-text me-2"></i>Cover Letter Preview</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="coverLetterContent" class="small" style="max-height: 300px; overflow-y: auto;"></div>
+                            <div class="mt-3">
+                                <button class="btn btn-sm btn-success" id="applyNowBtn">
+                                    <i class="bi bi-send-check me-2"></i>Apply Now
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" id="editCoverBtn">
+                                    <i class="bi bi-pencil me-2"></i>Edit Cover Letter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="extractError" style="display: none;" class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <span id="errorMessage"></span>
+                        <p class="mb-0 mt-2 small">You can still fill in the details manually below.</p>
+                    </div>
+                    
+                    <form id="addJobForm">
+                        <div class="mb-3">
+                            <label for="title" class="form-label fw-bold">Job Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" required>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="company" class="form-label fw-bold">Company <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="company" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="location" class="form-label fw-bold">Location</label>
+                                <input type="text" class="form-control" id="location" value="Singapore">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="job_type" class="form-label fw-bold">Job Type</label>
+                                <select class="form-select" id="job_type">
+                                    <option value="">Select...</option>
+                                    <option value="full-time">Full Time</option>
+                                    <option value="part-time">Part Time</option>
+                                    <option value="contract">Contract</option>
+                                    <option value="internship">Internship</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="salary" class="form-label fw-bold">Salary (Optional)</label>
+                                <input type="text" class="form-control" id="salary" placeholder="e.g., $5000 - $8000">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label fw-bold">Job Description</label>
+                            <textarea class="form-control" id="description" rows="6" style="resize: vertical;"></textarea>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="requirements" class="form-label fw-bold">Requirements</label>
+                            <textarea class="form-control" id="requirements" rows="4" 
+                                      placeholder="Requirements will be extracted automatically..."></textarea>
+                            <small class="text-muted">One requirement per line</small>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                                <i class="bi bi-arrow-counterclockwise me-2"></i>Reset
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle me-2"></i>Add Job
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div id="addJobResult" class="mt-4" style="display: none;"></div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-lightbulb text-warning me-2"></i>How It Works
+                    </h5>
+                    <ol class="small mb-0">
+                        <li class="mb-2">Paste the job URL from any job board</li>
+                        <li class="mb-2">Click "Extract Details" to auto-fill all fields</li>
+                        <li class="mb-2">Review and edit if needed</li>
+                        <li>Click "Add Job" to save</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-check-circle text-success me-2"></i>Supported Sites
+                    </h5>
+                    <ul class="list-unstyled small mb-0">
+                        <li class="mb-1"><i class="bi bi-check text-success me-2"></i>LinkedIn</li>
+                        <li class="mb-1"><i class="bi bi-check text-success me-2"></i>Indeed</li>
+                        <li class="mb-1"><i class="bi bi-check text-success me-2"></i>JobStreet</li>
+                        <li class="mb-1"><i class="bi bi-check text-success me-2"></i>Glassdoor</li>
+                        <li class="mb-1"><i class="bi bi-check text-success me-2"></i>MyCareersFuture</li>
+                        <li class="mb-1"><i class="bi bi-check text-success me-2"></i>JobsDB</li>
+                        <li class="mb-1"><i class="bi bi-check text-success me-2"></i>Other job boards</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-info-circle text-info me-2"></i>Tips
+                    </h5>
+                    <ul class="small mb-0">
+                        <li class="mb-2">Make sure the URL is from the job posting page</li>
+                        <li class="mb-2">You can edit any field after extraction</li>
+                        <li class="mb-2">Requirements are extracted automatically</li>
+                        <li>All fields except URL can be edited manually</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#extractBtn').on('click', function() {
+        const url = $('#jobUrl').val().trim();
+        
+        if (!url) {
+            alert('Please enter a job URL');
+            return;
+        }
+        
+        // Show spinner with progress
+        $('#extractingSpinner').show();
+        $('#addJobForm').hide();
+        $('#coverLetterPreview').hide();
+        $('#extractBtn').prop('disabled', true);
+        $('#processingStep').text('Extracting job details from URL...');
+        
+        $.ajax({
+            url: '/api/extract_job',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ url: url }),
+            success: function(response) {
+                if (response.success) {
+                    // Update progress
+                    $('#processingStep').text('Matching job to your profile...');
+                    
+                    // Fill form with extracted data
+                    $('#title').val(response.job?.title || response.title || '');
+                    $('#company').val(response.job?.company || response.company || '');
+                    $('#location').val(response.job?.location || response.location || 'Singapore');
+                    $('#description').val(response.job?.description || response.description || '');
+                    
+                    // Fill requirements
+                    if (response.job?.requirements && response.job.requirements.length > 0) {
+                        $('#requirements').val(response.job.requirements.join('\n'));
+                    } else if (response.requirements && response.requirements.length > 0) {
+                        $('#requirements').val(response.requirements.join('\n'));
+                    }
+                    
+                    // Show match score if available
+                    if (response.job?.match_percentage) {
+                        $('#processingStep').html(`Match Score: <strong class="text-success">${response.job.match_percentage}%</strong>`);
+                    }
+                    
+                    // Show cover letter if generated
+                    if (response.cover_letter) {
+                        $('#processingStep').text('Cover letter generated!');
+                        $('#coverLetterContent').text(response.cover_letter);
+                        $('#coverLetterPreview').slideDown();
+                    }
+                    
+                    // Show form
+                    $('#addJobForm').slideDown();
+                    $('#extractingSpinner').hide();
+                    
+                    // Store cover letter file for apply button
+                    window.coverLetterFile = response.cover_letter_file;
+                    window.jobUrl = url;
+                    
+                } else {
+                    $('#extractingSpinner').hide();
+                    $('#extractError').show();
+                    $('#errorMessage').text(response.error || 'Failed to extract job details');
+                    $('#addJobForm').show();
+                }
+                $('#extractBtn').prop('disabled', false);
+            },
+            error: function(xhr) {
+                $('#extractingSpinner').hide();
+                $('#extractBtn').prop('disabled', false);
+                $('#extractError').show();
+                $('#errorMessage').text(xhr.responseJSON?.error || 'Failed to extract job details. Please fill in manually.');
+                $('#addJobForm').show();
+            }
+        });
+    });
+    
+    $('#applyNowBtn').on('click', function() {
+        if (!confirm('Apply to this job? Cover letter will be submitted.')) {
+            return;
+        }
+        
+        const url = $('#jobUrl').val().trim();
+        if (!url) {
+            alert('Job URL is required');
+            return;
+        }
+        
+        $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Applying...');
+        
+        $.ajax({
+            url: '/api/smart_apply',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ url: url, auto_confirm: true }),
+            success: function(response) {
+                if (response.success && response.applied) {
+                    alert('Application submitted successfully!');
+                    window.location.href = '/jobs';
+                } else {
+                    alert('Application prepared. Please review and submit manually.');
+                }
+            },
+            error: function() {
+                alert('Error applying to job');
+            }
+        });
+    });
+    
+    $('#addJobForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+            url: $('#jobUrl').val(),
+            title: $('#title').val(),
+            company: $('#company').val(),
+            location: $('#location').val(),
+            description: $('#description').val(),
+            requirements: $('#requirements').val(),
+            salary: $('#salary').val(),
+            job_type: $('#job_type').val()
+        };
+        
+        $.ajax({
+            url: '/add_job',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response);
+                } else {
+                    showError(response.error || 'Failed to add job');
+                }
+            },
+            error: function(xhr) {
+                showError(xhr.responseJSON?.error || 'Error adding job');
+            }
+        });
+    });
+    
+    function showSuccess(response) {
+        const html = `
+            <div class="alert alert-success">
+                <h5><i class="bi bi-check-circle me-2"></i>Job Added Successfully!</h5>
+                <p class="mb-2"><strong>${response.job.title}</strong> at <strong>${response.job.company}</strong></p>
+                <hr>
+                <div class="d-flex gap-2">
+                    <a href="/jobs" class="btn btn-success">
+                        <i class="bi bi-briefcase me-2"></i>View All Jobs
+                    </a>
+                    <button class="btn btn-outline-primary" onclick="resetForm()">
+                        <i class="bi bi-plus-circle me-2"></i>Add Another Job
+                    </button>
+                </div>
+            </div>
+        `;
+        $('#addJobResult').html(html).show();
+        resetForm();
+        
+        $('html, body').animate({
+            scrollTop: $('#addJobResult').offset().top - 100
+        }, 500);
+    }
+    
+    function showError(message) {
+        const html = `
+            <div class="alert alert-danger">
+                <h5><i class="bi bi-exclamation-triangle me-2"></i>Error</h5>
+                <p>${message}</p>
+            </div>
+        `;
+        $('#addJobResult').html(html).show();
+    }
+    
+    window.resetForm = function() {
+        $('#jobUrl').val('');
+        $('#addJobForm')[0].reset();
+        $('#addJobForm').hide();
+        $('#addJobResult').hide();
+        $('#extractingSpinner').hide();
+    };
+});
+</script>
+{% endblock %}

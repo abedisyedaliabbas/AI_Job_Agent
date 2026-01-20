@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - AI Job Agent{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-person-circle me-2"></i>My Profile</h2>
+            <p class="text-muted mb-0">View and complete your profile information</p>
+        </div>
+        <a href="/upload" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-upload me-1"></i>Update Resume
+        </a>
+    </div>
+    
+    {% if not profile %}
+    <div class="card border-warning">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-exclamation-triangle display-1 text-warning mb-3"></i>
+            <h4 class="fw-bold mb-3">No Profile Found</h4>
+            <p class="text-muted mb-4">Upload your resume to create your profile.</p>
+            <a href="/upload" class="btn btn-primary btn-lg">
+                <i class="bi bi-upload me-2"></i>Upload Resume
+            </a>
+        </div>
+    </div>
+    {% else %}
+    
+    <!-- Basic Information -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Basic Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label text-muted small">Full Name</label>
+                    <div class="fw-bold">{{ profile.name or 'Not provided' }}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label text-muted small">Email</label>
+                    <div class="fw-bold">{{ profile.email or 'Not provided' }}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label text-muted small">Phone</label>
+                    <div class="fw-bold">{{ profile.phone or 'Not provided' }}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label text-muted small">Location</label>
+                    <div class="fw-bold">{{ profile.location or 'Not provided' }}</div>
+                </div>
+                {% if profile.website %}
+                <div class="col-md-6">
+                    <label class="form-label text-muted small">Website</label>
+                    <div><a href="{{ profile.website }}" target="_blank">{{ profile.website }}</a></div>
+                </div>
+                {% endif %}
+                {% if profile.orcid %}
+                <div class="col-md-6">
+                    <label class="form-label text-muted small">ORCID</label>
+                    <div><a href="https://orcid.org/{{ profile.orcid }}" target="_blank">{{ profile.orcid }}</a></div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Education -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-mortarboard me-2"></i>Education ({{ profile.education|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% if profile.education and profile.education|length > 0 %}
+            {% for edu in profile.education %}
+            <div class="border-bottom pb-3 mb-3">
+                <h6 class="fw-bold">{{ edu.degree }}</h6>
+                <div class="text-muted">{{ edu.field }}</div>
+                <div class="text-muted">{{ edu.institution }}</div>
+                {% if edu.graduation_date %}
+                <small class="text-muted">{{ edu.graduation_date }}</small>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle me-2"></i>No education information found. Update your resume to add education details.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Experience -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-briefcase me-2"></i>Work Experience ({{ profile.experience|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% if profile.experience and profile.experience|length > 0 %}
+            {% for exp in profile.experience %}
+            <div class="border-bottom pb-3 mb-3">
+                <h6 class="fw-bold">{{ exp.title }}</h6>
+                <div class="text-muted">{{ exp.company }}</div>
+                {% if exp.location %}
+                <div class="text-muted"><i class="bi bi-geo-alt me-1"></i>{{ exp.location }}</div>
+                {% endif %}
+                {% if exp.start_date or exp.end_date %}
+                <small class="text-muted">{{ exp.start_date }} - {{ exp.end_date or 'Present' }}</small>
+                {% endif %}
+                {% if exp.description %}
+                <div class="mt-2">
+                    <ul class="mb-0">
+                        {% for desc in exp.description[:3] %}
+                        <li>{{ desc }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle me-2"></i>No work experience found. Update your resume to add experience details.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Publications -->
+    {% if profile.publications and profile.publications|length > 0 %}
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-white">
+            <h5 class="mb-0"><i class="bi bi-file-text me-2"></i>Publications ({{ profile.publications|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% for pub in profile.publications[:10] %}
+            <div class="border-bottom pb-2 mb-2">
+                <div class="fw-semibold">{{ pub.title }}</div>
+                <div class="text-muted small">{{ pub.authors }}</div>
+                <div class="text-muted small">{{ pub.journal }}{% if pub.year %} ({{ pub.year }}){% endif %}</div>
+            </div>
+            {% endfor %}
+            {% if profile.publications|length > 10 %}
+            <div class="text-muted small">... and {{ profile.publications|length - 10 }} more publications</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Skills -->
+    {% if profile.skills and profile.skills|length > 0 %}
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="bi bi-star me-2"></i>Skills</h5>
+        </div>
+        <div class="card-body">
+            {% for skill_cat in profile.skills %}
+            <div class="mb-3">
+                <h6 class="text-muted">{{ skill_cat.category }}</h6>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for skill in skill_cat.skills %}
+                    <span class="badge bg-secondary-subtle text-secondary border border-secondary p-2">{{ skill }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Research Interests -->
+    {% if profile.research_interests and profile.research_interests|length > 0 %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-lightbulb me-2"></i>Research Interests</h5>
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap gap-2">
+                {% for interest in profile.research_interests %}
+                <span class="badge bg-primary-subtle text-primary border border-primary p-2">{{ interest }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="mb-3">Update Your Profile</h5>
+            <p class="text-muted mb-3">Edit your profile information or upload a new resume.</p>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" onclick="enableEditMode()">
+                    <i class="bi bi-pencil me-2"></i>Edit Profile
+                </button>
+                <a href="/upload" class="btn btn-outline-primary">
+                    <i class="bi bi-upload me-2"></i>Upload New Resume
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Profile Modal -->
+    <div class="modal fade" id="editProfileModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editProfileForm">
+                        <ul class="nav nav-tabs mb-3" role="tablist">
+                            <li class="nav-item">
+                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#basicTab" type="button">Basic Info</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#educationTab" type="button">Education</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#skillsTab" type="button">Skills</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#keywordsTab" type="button">Job Keywords</button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content">
+                            <!-- Basic Info Tab -->
+                            <div class="tab-pane fade show active" id="basicTab">
+                                <div class="mb-3">
+                                    <label class="form-label">Full Name</label>
+                                    <input type="text" class="form-control" name="name" value="{{ profile.name if profile else '' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" name="email" value="{{ profile.email if profile else '' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Phone</label>
+                                    <input type="text" class="form-control" name="phone" value="{{ profile.phone if profile else '' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Location</label>
+                                    <input type="text" class="form-control" name="location" value="{{ profile.location if profile else '' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Website</label>
+                                    <input type="url" class="form-control" name="website" value="{{ profile.website if profile else '' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">ORCID</label>
+                                    <input type="text" class="form-control" name="orcid" value="{{ profile.orcid if profile else '' }}">
+                                </div>
+                            </div>
+                            
+                            <!-- Education Tab -->
+                            <div class="tab-pane fade" id="educationTab">
+                                <div id="educationList">
+                                    {% if profile.education %}
+                                    {% for edu in profile.education %}
+                                    <div class="education-item border p-3 mb-3 rounded">
+                                        <button type="button" class="btn btn-sm btn-danger float-end" onclick="removeEducationItem(this)">Remove</button>
+                                        <div class="mb-2">
+                                            <label class="form-label small">Degree</label>
+                                            <input type="text" class="form-control form-control-sm" name="edu_degree[]" value="{{ edu.degree }}" placeholder="e.g., PhD, MS, BSc">
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label small">Field</label>
+                                            <input type="text" class="form-control form-control-sm" name="edu_field[]" value="{{ edu.field }}" placeholder="e.g., Computer Science">
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label small">Institution</label>
+                                            <input type="text" class="form-control form-control-sm" name="edu_institution[]" value="{{ edu.institution }}" placeholder="e.g., MIT">
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label small">Graduation Date/Year</label>
+                                            <input type="text" class="form-control form-control-sm" name="edu_graduation[]" value="{{ edu.graduation_date }}" placeholder="e.g., 2020 or May 2020">
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                    {% endif %}
+                                </div>
+                                <button type="button" class="btn btn-sm btn-success" onclick="addEducationItem()">
+                                    <i class="bi bi-plus-circle me-1"></i>Add Education
+                                </button>
+                            </div>
+                            
+                            <!-- Skills Tab -->
+                            <div class="tab-pane fade" id="skillsTab">
+                                <div id="skillsList">
+                                    {% if profile.skills %}
+                                    {% for skill_cat in profile.skills %}
+                                    <div class="skill-category border p-3 mb-3 rounded">
+                                        <button type="button" class="btn btn-sm btn-danger float-end" onclick="removeSkillCategory(this)">Remove</button>
+                                        <div class="mb-2">
+                                            <label class="form-label small">Category</label>
+                                            <input type="text" class="form-control form-control-sm" name="skill_category[]" value="{{ skill_cat.category }}" placeholder="e.g., Programming, Languages">
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label small">Skills (comma-separated)</label>
+                                            <input type="text" class="form-control form-control-sm" name="skill_items[]" value="{{ skill_cat.skills|join(', ') }}" placeholder="e.g., Python, Java, C++">
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                    {% endif %}
+                                </div>
+                                <button type="button" class="btn btn-sm btn-success" onclick="addSkillCategory()">
+                                    <i class="bi bi-plus-circle me-1"></i>Add Skill Category
+                                </button>
+                            </div>
+                            
+                            <!-- Job Keywords Tab -->
+                            <div class="tab-pane fade" id="keywordsTab">
+                                <div class="mb-3">
+                                    <label class="form-label">Job Search Keywords</label>
+                                    <textarea class="form-control" name="job_keywords" rows="5" placeholder="Enter keywords for job search, one per line or comma-separated&#10;e.g.,&#10;machine learning&#10;data science&#10;python developer&#10;or&#10;machine learning, data science, python developer">{% if profile.job_keywords %}{{ profile.job_keywords|join('\n') }}{% endif %}</textarea>
+                                    <small class="text-muted">These keywords will be used by the AI agent to search for matching jobs.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    function enableEditMode() {
+        const modal = new bootstrap.Modal(document.getElementById('editProfileModal'));
+        modal.show();
+    }
+    
+    function addEducationItem() {
+        const html = `
+            <div class="education-item border p-3 mb-3 rounded">
+                <button type="button" class="btn btn-sm btn-danger float-end" onclick="removeEducationItem(this)">Remove</button>
+                <div class="mb-2">
+                    <label class="form-label small">Degree</label>
+                    <input type="text" class="form-control form-control-sm" name="edu_degree[]" placeholder="e.g., PhD, MS, BSc">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">Field</label>
+                    <input type="text" class="form-control form-control-sm" name="edu_field[]" placeholder="e.g., Computer Science">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">Institution</label>
+                    <input type="text" class="form-control form-control-sm" name="edu_institution[]" placeholder="e.g., MIT">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">Graduation Date/Year</label>
+                    <input type="text" class="form-control form-control-sm" name="edu_graduation[]" placeholder="e.g., 2020 or May 2020">
+                </div>
+            </div>
+        `;
+        $('#educationList').append(html);
+    }
+    
+    function removeEducationItem(btn) {
+        $(btn).closest('.education-item').remove();
+    }
+    
+    function addSkillCategory() {
+        const html = `
+            <div class="skill-category border p-3 mb-3 rounded">
+                <button type="button" class="btn btn-sm btn-danger float-end" onclick="removeSkillCategory(this)">Remove</button>
+                <div class="mb-2">
+                    <label class="form-label small">Category</label>
+                    <input type="text" class="form-control form-control-sm" name="skill_category[]" placeholder="e.g., Programming, Languages">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">Skills (comma-separated)</label>
+                    <input type="text" class="form-control form-control-sm" name="skill_items[]" placeholder="e.g., Python, Java, C++">
+                </div>
+            </div>
+        `;
+        $('#skillsList').append(html);
+    }
+    
+    function removeSkillCategory(btn) {
+        $(btn).closest('.skill-category').remove();
+    }
+    
+    function saveProfile() {
+        const form = document.getElementById('editProfileForm');
+        const formData = new FormData(form);
+        
+        // Build data object
+        const data = {
+            name: formData.get('name'),
+            email: formData.get('email'),
+            phone: formData.get('phone'),
+            location: formData.get('location'),
+            website: formData.get('website'),
+            orcid: formData.get('orcid'),
+            education: [],
+            skills: [],
+            job_keywords: []
+        };
+        
+        // Collect education entries
+        const degrees = formData.getAll('edu_degree[]');
+        const fields = formData.getAll('edu_field[]');
+        const institutions = formData.getAll('edu_institution[]');
+        const graduations = formData.getAll('edu_graduation[]');
+        
+        for (let i = 0; i < degrees.length; i++) {
+            if (degrees[i] || institutions[i]) {
+                data.education.push({
+                    degree: degrees[i] || '',
+                    field: fields[i] || '',
+                    institution: institutions[i] || '',
+                    graduation_date: graduations[i] || ''
+                });
+            }
+        }
+        
+        // Collect skill categories
+        const categories = formData.getAll('skill_category[]');
+        const skillItems = formData.getAll('skill_items[]');
+        
+        for (let i = 0; i < categories.length; i++) {
+            if (categories[i] || skillItems[i]) {
+                const skills = skillItems[i] ? skillItems[i].split(',').map(s => s.trim()).filter(s => s) : [];
+                data.skills.push({
+                    category: categories[i] || 'General',
+                    skills: skills
+                });
+            }
+        }
+        
+        // Collect job keywords
+        const keywordsText = formData.get('job_keywords') || '';
+        if (keywordsText) {
+            // Split by newline or comma
+            data.job_keywords = keywordsText.split(/[\n,]/).map(k => k.trim()).filter(k => k);
+        }
+        
+        $.ajax({
+            url: '/api/update_profile',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + (response.error || 'Failed to update profile'));
+                }
+            },
+            error: function(xhr) {
+                alert('Error: ' + (xhr.responseJSON?.error || 'Failed to update profile'));
+            }
+        });
+    }
+    </script>
+    
+    {% endif %}
+</div>
+{% endblock %}

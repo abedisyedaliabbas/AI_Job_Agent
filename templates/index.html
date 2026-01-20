@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}AI Job Agent - Automated Job Search & Application{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="text-center mb-4">
+        <h1 class="h3 fw-bold mb-2">AI Job Agent</h1>
+        <p class="text-muted small mb-4">
+            Upload your resume → AI finds matching jobs → Auto-generates cover letters → Apply with one click
+        </p>
+    </div>
+    
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card h-100 border-primary">
+                <div class="card-body p-3 text-center">
+                    <i class="bi bi-upload fs-4 text-primary mb-2 d-block"></i>
+                    <h6 class="fw-semibold mb-1 small">1. Upload Resume</h6>
+                    <p class="text-muted small mb-2">PDF, DOCX, or TXT</p>
+                    <a href="/upload" class="btn btn-sm btn-primary w-100">Upload</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card h-100 border-success">
+                <div class="card-body p-3 text-center">
+                    <i class="bi bi-robot fs-4 text-success mb-2 d-block"></i>
+                    <h6 class="fw-semibold mb-1 small">2. AI Finds Jobs</h6>
+                    <p class="text-muted small mb-2">Auto-search worldwide</p>
+                    <a href="/search" class="btn btn-sm btn-success w-100 text-white">Search</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card h-100 border-info">
+                <div class="card-body p-3 text-center">
+                    <i class="bi bi-file-text fs-4 text-info mb-2 d-block"></i>
+                    <h6 class="fw-semibold mb-1 small">3. Generate Covers</h6>
+                    <p class="text-muted small mb-2">Auto-generated</p>
+                    <a href="/jobs" class="btn btn-sm btn-info w-100 text-white">View Jobs</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card h-100 border-danger">
+                <div class="card-body p-3 text-center">
+                    <i class="bi bi-send-check fs-4 text-danger mb-2 d-block"></i>
+                    <h6 class="fw-semibold mb-1 small">4. Apply</h6>
+                    <p class="text-muted small mb-2">One-click apply</p>
+                    <a href="/jobs" class="btn btn-sm btn-danger w-100">Apply</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card border-0 bg-light mb-4">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-lightning-charge me-2"></i>Quick Start</h5>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <h6 class="fw-semibold small">Option 1: Full Automation</h6>
+                    <ol class="small text-muted">
+                        <li>Upload your resume</li>
+                        <li>Click "AI Agent: Auto-Search Jobs"</li>
+                        <li>View matched jobs with cover letters</li>
+                        <li>Apply with one click</li>
+                    </ol>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="fw-semibold small">Option 2: Manual Control</h6>
+                    <ol class="small text-muted">
+                        <li>Upload your resume</li>
+                        <li>Search jobs manually or add by URL</li>
+                        <li>Generate cover letters for selected jobs</li>
+                        <li>Review and apply</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="alert alert-info small">
+        <strong><i class="bi bi-info-circle me-2"></i>Tip:</strong> 
+        The AI agent automatically extracts keywords from your resume and searches for matching jobs worldwide. 
+        Cover letters are personalized based on your experience and the job requirements.
+    </div>
+</div>
+{% endblock %}
