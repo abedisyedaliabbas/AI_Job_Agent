@@ -546,99 +546,117 @@ def parse_resume_v2(filepath: str) -> Dict:
     
     print(f"[PARSER V2] Publications: {len(data['publications'])} entries")
     
-    # 9. PARSE SKILLS
-    skills_start = section_starts.get('skills', 0)
-    # If no explicit section, search for skills table
-    if skills_start == 0:
-        for i, line in enumerate(lines):
-            line_lower = line.lower()
-            # Look for "Technical Skills" or table with "Category | Skills"
-            if ('technical skills' in line_lower or 
-                ('skills' in line_lower and 'expertise' in line_lower) or
-                ('|' in line and 'category' in line_lower and 'skill' in line_lower)):
-                skills_start = i
-                print(f"[PARSER V2] Skills section found at line {i}: '{line[:50]}'")
-                break
-    
-    if skills_start > 0:
-        skills_end = min(len(lines), skills_start + 50)
-        skills_lines = lines[skills_start:skills_end]
+    # 9. PARSE SKILLS - Enhanced with comprehensive extraction
+    # Use enhanced skill parser to extract skills from entire document
+    try:
+        from enhanced_skill_parser import EnhancedSkillParser
+        skill_parser = EnhancedSkillParser()
+        full_text = '\n'.join(lines)
+        skills_by_category = skill_parser.parse_skills_from_text(full_text)
         
-        # Look for table format: "| Category | Skills |"
-        in_table = False
-        for line in skills_lines:
-            line_lower = line.lower()
-            
-            # Skip section header
-            if 'technical skills' in line_lower or ('skills' in line_lower and 'expertise' in line_lower):
-                continue
-            
-            # Check for table header
-            if '|' in line and 'category' in line_lower:
-                in_table = True
-                continue
-            
-            # Extract from table rows
-            if in_table and '|' in line:
-                parts = [p.strip() for p in line.split('|')]
-                if len(parts) >= 3:  # | Category | Skills |
-                    skills_text = parts[1] if len(parts) > 1 else ""
-                    # Split skills by commas, semicolons, colons
-                    skills_list = re.split(r'[,;:]', skills_text)
-                    for skill in skills_list:
-                        skill = skill.strip()
-                        # Remove parentheses but keep content
-                        skill = re.sub(r'\([^)]+\)', '', skill).strip()
-                        # Remove common prefixes
-                        skill = re.sub(r'^(Languages?|Software|Tools?|Frameworks?|ML|Machine Learning|Data|Programming):\s*', '', skill, flags=re.IGNORECASE)
-                        if len(skill) > 2 and skill.lower() not in ['and', 'or', 'the', 'a', 'category', 'skills']:
-                            data["skills"].append(skill)
+        # Convert to flat list for compatibility
+        all_skills_flat = skill_parser.get_all_skills_flat(skills_by_category)
+        data["skills"] = all_skills_flat[:100]  # Limit to 100 skills
         
-        # Remove duplicates and filter out sentence fragments
-        filtered_skills = []
-        skip_words = ['technical', 'expertise', 'skills', 'category', 'competencies', 'proficiencies']
-        # Sentence fragments and non-skill words to filter
-        sentence_fragments = [
-            'actively', 'guided', 'utilising', 'utilizing', 'performed', 'conducted', 'led', 'organized',
-            'employing', 'leveraging', 'developing', 'creating', 'designing', 'implementing',
-            'density', 'photostability', 'stability', 'methodology', 'approach', 'technique',
-            'ntu', 'sutd', 'nus', 'ucl', 'mit', 'stanford', 'harvard', 'oxford', 'cambridge',
-            'also', 'including', 'especially', 'particularly', 'specifically', 'primarily',
-            'this', 'that', 'these', 'those', 'from', 'into', 'onto', 'upon', 'within', 'without',
-            'and', 'or', 'the', 'a', 'an', 'with', 'using', 'via', 'for', 'to', 'in', 'on', 'at', 'by'
-        ]
+        print(f"[PARSER V2] Enhanced parser found {len(all_skills_flat)} skills across {len(skills_by_category)} categories")
+        for category, skills in skills_by_category.items():
+            if skills:
+                print(f"[PARSER V2]   {category}: {len(skills)} skills")
+    except ImportError:
+        print("[PARSER V2] Enhanced skill parser not available, using basic extraction")
+        # Fallback to basic extraction
+        skills_start = section_starts.get('skills', 0)
+        # If no explicit section, search for skills table
+        if skills_start == 0:
+            for i, line in enumerate(lines):
+                line_lower = line.lower()
+                # Look for "Technical Skills" or table with "Category | Skills"
+                if ('technical skills' in line_lower or 
+                    ('skills' in line_lower and 'expertise' in line_lower) or
+                    ('|' in line and 'category' in line_lower and 'skill' in line_lower)):
+                    skills_start = i
+                    print(f"[PARSER V2] Skills section found at line {i}: '{line[:50]}'")
+                    break
         
-        for skill in data["skills"]:
-            skill_lower = skill.lower().strip()
-            # Skip if it's a category header or common word
-            if any(word == skill_lower for word in skip_words):
-                continue
-            # Skip if it's a sentence fragment
-            if skill_lower in sentence_fragments:
-                continue
-            # Skip if it starts with category/technical
-            if skill_lower.startswith('category') or skill_lower.startswith('technical'):
-                continue
-            # Skip if it's too short
-            if len(skill) < 3:
-                continue
-            # Skip if it ends with -ly (adverbs) unless it's a known skill
-            if skill_lower.endswith('ly') and len(skill_lower) < 8:
-                continue
-            # Skip if it's just a verb ending in -ing (unless it's a known skill like "Programming")
-            if skill_lower.endswith('ing') and skill_lower not in ['programming', 'engineering', 'marketing', 'designing']:
-                if skill_lower in ['utilising', 'utilizing', 'employing', 'leveraging', 'developing', 'creating']:
+        if skills_start > 0:
+            skills_end = min(len(lines), skills_start + 50)
+            skills_lines = lines[skills_start:skills_end]
+            
+            # Look for table format: "| Category | Skills |"
+            in_table = False
+            for line in skills_lines:
+                line_lower = line.lower()
+                
+                # Skip section header
+                if 'technical skills' in line_lower or ('skills' in line_lower and 'expertise' in line_lower):
                     continue
-            # Skip if it's an institution name (short acronyms)
-            if len(skill) <= 4 and skill.isupper() and skill_lower in ['ntu', 'sutd', 'nus', 'ucl', 'mit']:
-                continue
-            # Must have at least one letter
-            if not re.search(r'[a-zA-Z]', skill):
-                continue
+                
+                # Check for table header
+                if '|' in line and 'category' in line_lower:
+                    in_table = True
+                    continue
+                
+                # Extract from table rows
+                if in_table and '|' in line:
+                    parts = [p.strip() for p in line.split('|')]
+                    if len(parts) >= 3:  # | Category | Skills |
+                        skills_text = parts[1] if len(parts) > 1 else ""
+                        # Split skills by commas, semicolons, colons
+                        skills_list = re.split(r'[,;:]', skills_text)
+                        for skill in skills_list:
+                            skill = skill.strip()
+                            # Remove parentheses but keep content
+                            skill = re.sub(r'\([^)]+\)', '', skill).strip()
+                            # Remove common prefixes
+                            skill = re.sub(r'^(Languages?|Software|Tools?|Frameworks?|ML|Machine Learning|Data|Programming):\s*', '', skill, flags=re.IGNORECASE)
+                            if len(skill) > 2 and skill.lower() not in ['and', 'or', 'the', 'a', 'category', 'skills']:
+                                data["skills"].append(skill)
             
-            filtered_skills.append(skill)
-        
-        data["skills"] = list(dict.fromkeys(filtered_skills))[:100]
+            # Remove duplicates and filter out sentence fragments
+            filtered_skills = []
+            skip_words = ['technical', 'expertise', 'skills', 'category', 'competencies', 'proficiencies']
+            # Sentence fragments and non-skill words to filter
+            sentence_fragments = [
+                'actively', 'guided', 'utilising', 'utilizing', 'performed', 'conducted', 'led', 'organized',
+                'employing', 'leveraging', 'developing', 'creating', 'designing', 'implementing',
+                'density', 'photostability', 'stability', 'methodology', 'approach', 'technique',
+                'ntu', 'sutd', 'nus', 'ucl', 'mit', 'stanford', 'harvard', 'oxford', 'cambridge',
+                'also', 'including', 'especially', 'particularly', 'specifically', 'primarily',
+                'this', 'that', 'these', 'those', 'from', 'into', 'onto', 'upon', 'within', 'without',
+                'and', 'or', 'the', 'a', 'an', 'with', 'using', 'via', 'for', 'to', 'in', 'on', 'at', 'by'
+            ]
+            
+            for skill in data["skills"]:
+                skill_lower = skill.lower().strip()
+                # Skip if it's a category header or common word
+                if any(word == skill_lower for word in skip_words):
+                    continue
+                # Skip if it's a sentence fragment
+                if skill_lower in sentence_fragments:
+                    continue
+                # Skip if it starts with category/technical
+                if skill_lower.startswith('category') or skill_lower.startswith('technical'):
+                    continue
+                # Skip if it's too short
+                if len(skill) < 3:
+                    continue
+                # Skip if it ends with -ly (adverbs) unless it's a known skill
+                if skill_lower.endswith('ly') and len(skill_lower) < 8:
+                    continue
+                # Skip if it's just a verb ending in -ing (unless it's a known skill like "Programming")
+                if skill_lower.endswith('ing') and skill_lower not in ['programming', 'engineering', 'marketing', 'designing']:
+                    if skill_lower in ['utilising', 'utilizing', 'employing', 'leveraging', 'developing', 'creating']:
+                        continue
+                # Skip if it's an institution name (short acronyms)
+                if len(skill) <= 4 and skill.isupper() and skill_lower in ['ntu', 'sutd', 'nus', 'ucl', 'mit']:
+                    continue
+                # Must have at least one letter
+                if not re.search(r'[a-zA-Z]', skill):
+                    continue
+                
+                filtered_skills.append(skill)
+            
+            data["skills"] = list(dict.fromkeys(filtered_skills))[:100]
     
     print(f"[PARSER V2] Skills: {len(data['skills'])} entries")
     print(f"[PARSER V2] FINAL: Name='{data['name']}', Email='{data['email']}', Edu={len(data['education'])}, Exp={len(data['experience'])}, Pubs={len(data['publications'])}, Skills={len(data['skills'])}")

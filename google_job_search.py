@@ -92,15 +92,21 @@ class GoogleJobSearch:
         """Direct Google search for jobs"""
         jobs = []
         try:
-            # Build comprehensive job search query - prioritize company websites
-            # Use "site:" operator to find jobs on company websites (not job boards)
-            search_terms = f"{query} job opening position hiring"
+            # Build comprehensive job search query - Include job boards too for more results
+            # First try: company websites (preferred)
+            search_terms_company = f"{query} job opening position hiring careers"
             if location and location.lower() not in ['worldwide', '']:
-                search_terms += f" {location}"
+                search_terms_company += f" {location}"
             
-            # Exclude job boards to prioritize company websites
-            exclude_boards = "-site:linkedin.com -site:indeed.com -site:glassdoor.com -site:monster.com"
-            search_terms = f"{search_terms} {exclude_boards}"
+            # Exclude job boards for company search
+            exclude_boards = "-site:linkedin.com -site:indeed.com -site:glassdoor.com -site:monster.com -site:ziprecruiter.com"
+            search_terms_company = f"{search_terms_company} {exclude_boards} (careers OR jobs OR opportunities)"
+            
+            # Also try: job boards (for more results)
+            search_terms_boards = f"{query} jobs {location if location and location.lower() not in ['worldwide', ''] else ''}"
+            
+            # Use the company search first, but fallback to boards if needed
+            search_terms = search_terms_company
             
             query_encoded = quote(search_terms)
             # Use regular web search (not news) for better job results
@@ -171,12 +177,18 @@ class GoogleJobSearch:
                             if not href.startswith('http'):
                                 continue
                             
-                            # Check if it's a job board link
+                            # STRICTLY REJECT job board links - only accept company websites
                             href_lower = href.lower()
                             is_job_board = any(domain in href_lower for domain in job_board_domains)
-                            has_job_path = '/job' in href_lower or '/jobs' in href_lower
                             
-                            if is_job_board or has_job_path:
+                            # REJECT if it's a job board (especially LinkedIn)
+                            if is_job_board:
+                                continue
+                            
+                            # Only accept company websites with job paths
+                            has_job_path = '/job' in href_lower or '/jobs' in href_lower or '/careers' in href_lower or '/opportunities' in href_lower
+                            
+                            if has_job_path:
                                 # Decode URL
                                 try:
                                     from urllib.parse import unquote
@@ -303,23 +315,35 @@ class GoogleJobSearch:
                         if not title or len(title) < 5:
                             continue
                         
-                        # Less strict filtering - accept results from job board domains even if title doesn't have job keywords
+                        # STRICTLY FILTER: Only accept company websites, REJECT all job boards
                         title_lower = title.lower()
                         url_lower = job_url.lower()
-                        is_job_board = any(domain in url_lower for domain in [
-                            'indeed.com', 'linkedin.com/jobs', 'glassdoor.com', 'monster.com', 
+                        
+                        # REJECT all job board domains
+                        job_board_domains = [
+                            'linkedin.com', 'indeed.com', 'glassdoor.com', 'monster.com', 
                             'ziprecruiter.com', 'jobstreet.com', 'mycareersfuture.gov.sg', 
                             'reed.co.uk', 'adzuna.com', 'smartrecruiters.com', 'greenhouse.io',
-                            'lever.co', 'workday.com'
-                        ])
+                            'lever.co', 'workday.com', 'jobsdb.com'
+                        ]
                         
-                        # Accept if: has job keywords OR is from job board OR URL contains /job
+                        is_job_board = any(domain in url_lower for domain in job_board_domains)
+                        
+                        # REJECT if it's a job board
+                        if is_job_board:
+                            continue
+                        
+                        # Only accept company websites with job-related content
                         has_job_keyword = any(word in title_lower for word in [
                             'job', 'career', 'hiring', 'position', 'opening', 'vacancy', 
-                            'opportunity', 'recruit', 'employment', 'role'
+                            'opportunity', 'recruit', 'employment', 'role', 'scientist',
+                            'researcher', 'engineer', 'developer', 'analyst'
                         ])
                         
-                        if not (has_job_keyword or is_job_board or '/job' in url_lower or '/jobs' in url_lower):
+                        has_job_path = '/job' in url_lower or '/jobs' in url_lower or '/careers' in url_lower or '/opportunities' in url_lower
+                        
+                        # Accept only if: has job keywords AND (job path OR looks like company website)
+                        if not (has_job_keyword and (has_job_path or not any(domain in url_lower for domain in job_board_domains))):
                             continue
                         
                         # Clean Google redirect URLs

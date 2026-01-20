@@ -41,13 +41,18 @@ class ComprehensiveJobSearch:
         
         print(f"[COMPREHENSIVE] Searching for: '{query}' in '{location or 'Worldwide'}' (max: {max_results} jobs)")
         
-        # Define all job board search functions
+        # Define all job board search functions - EXPANDED with more sources
         search_functions = [
             ('indeed', self._search_indeed),
             ('linkedin', self._search_linkedin),
             ('glassdoor', self._search_glassdoor),
             ('monster', self._search_monster),
             ('ziprecruiter', self._search_ziprecruiter),
+            ('jobstreet', self._search_jobstreet),
+            ('reed', self._search_reed),
+            ('adzuna', self._search_adzuna),
+            ('mycareersfuture', self._search_mycareersfuture),
+            ('jobsdb', self._search_jobsdb),
             ('jobstreet', self._search_jobstreet),
             ('reed', self._search_reed),
             ('adzuna', self._search_adzuna),
@@ -81,17 +86,20 @@ class ComprehensiveJobSearch:
         # Remove duplicates based on title + company
         unique_jobs = self._remove_duplicates(all_jobs)
         
-        # PRIORITIZE: Sort to prefer company website jobs over LinkedIn
-        # Company website jobs are easier to apply to and more direct
+        # PRIORITIZE company websites, but keep LinkedIn as fallback if no other jobs found
         def job_priority(job):
             url_lower = (job.url or "").lower()
-            # Higher priority for company websites (not job boards)
+            # LinkedIn gets lower priority but NOT filtered out (needed as fallback)
             if 'linkedin.com' in url_lower:
-                return 1  # Lower priority
+                return 1  # Lower priority but still included
+            # Higher priority for company websites (not job boards)
             elif any(board in url_lower for board in ['indeed.com', 'glassdoor.com', 'monster.com', 'ziprecruiter.com']):
                 return 2  # Medium priority
             else:
                 return 3  # Highest priority (company websites, direct links)
+        
+        # Don't filter out LinkedIn - just prioritize others
+        # unique_jobs = [j for j in unique_jobs if job_priority(j) > 0]  # REMOVED - keep all jobs
         
         # Sort by priority (highest first), then by source diversity
         unique_jobs.sort(key=lambda j: (job_priority(j), j.source or ""), reverse=True)
@@ -225,15 +233,37 @@ class ComprehensiveJobSearch:
                     if response.status_code == 200:
                         soup = BeautifulSoup(response.content, 'html.parser')
                         
-                        # Try multiple selectors for LinkedIn job cards
+                        # Try multiple selectors for LinkedIn job cards - EXPANDED
+                        # LinkedIn uses dynamic class names, try many variations
                         job_cards = (
-                            soup.find_all('div', class_='job-search-card') or
-                            soup.find_all('li', class_='job-result-card') or
+                            soup.find_all('div', class_=re.compile(r'job-search-card|base-card|job-card|result-card')) or
+                            soup.find_all('li', class_=re.compile(r'job-result-card|result-card|job-card')) or
                             soup.find_all('div', class_='base-card') or
                             soup.find_all('div', {'data-entity-urn': True}) or
                             soup.find_all('li', {'data-entity-urn': True}) or
-                            soup.find_all('div', class_='jobs-search-results__list-item')
+                            soup.find_all('div', class_='jobs-search-results__list-item') or
+                            soup.find_all('div', {'data-job-id': True}) or
+                            soup.find_all('li', {'data-job-id': True}) or
+                            soup.find_all('article', class_=re.compile(r'job|card|result')) or
+                            soup.find_all('div', class_=re.compile(r'jobs-search-results|job-search'))
                         )
+                        
+                        # If still no cards, try finding any links to /jobs/view/
+                        if not job_cards:
+                            job_links = soup.find_all('a', href=re.compile(r'/jobs/view/'))
+                            if job_links:
+                                print(f"[LINKEDIN] Found {len(job_links)} job links, extracting from links...")
+                                # Create pseudo-cards from links
+                                for link in job_links[:max_results]:
+                                    try:
+                                        title = link.get_text(strip=True)
+                                        if title and len(title) > 5:
+                                            # Try to find parent container
+                                            parent = link.find_parent(['div', 'li', 'article'])
+                                            if parent:
+                                                job_cards.append(parent)
+                                    except:
+                                        continue
                         
                         if page_num == 0:
                             print(f"[LINKEDIN] Page {page_num + 1}: Found {len(job_cards)} potential job cards")

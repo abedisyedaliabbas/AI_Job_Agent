@@ -206,7 +206,7 @@
         <div class="col-md-6">
             <div class="card h-100 shadow-sm">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-star-fill me-2"></i>Resume Quality Breakdown</h5>
+                    <h5 class="mb-0" style="font-size: 1.1rem;"><i class="bi bi-star-fill me-2"></i>Resume Quality Breakdown</h5>
                 </div>
                 <div class="card-body">
                     <div style="position: relative; height: 250px;">
@@ -227,7 +227,7 @@
         <div class="col-md-6">
             <div class="card h-100 shadow-sm">
                 <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="bi bi-check-circle me-2"></i>Profile Completeness</h5>
+                    <h5 class="mb-0" style="font-size: 1.1rem;"><i class="bi bi-check-circle me-2"></i>Profile Completeness</h5>
                 </div>
                 <div class="card-body">
                     <div style="position: relative; height: 250px;">
@@ -249,11 +249,11 @@
     <!-- Skills Distribution Chart -->
     {% if skill_stats and (skill_stats.skills_by_category or skill_stats.top_skills) %}
     <div class="row g-4 mb-4">
-        {% if skill_stats.skills_by_category and skill_stats.skills_by_category|length > 0 %}
+        {% if skill_stats.top_skills and skill_stats.top_skills|length > 0 %}
         <div class="col-md-8">
             <div class="card h-100 shadow-sm">
                 <div class="card-header bg-success text-white">
-                    <h5 class="mb-0"><i class="bi bi-star me-2"></i>Skills by Category</h5>
+                    <h5 class="mb-0" style="font-size: 1.1rem;"><i class="bi bi-bar-chart me-2"></i>Skill Distribution</h5>
                 </div>
                 <div class="card-body">
                     <div style="position: relative; height: 300px;">
@@ -266,7 +266,7 @@
         <div class="col-md-{% if skill_stats.skills_by_category and skill_stats.skills_by_category|length > 0 %}4{% else %}12{% endif %}">
             <div class="card h-100 shadow-sm">
                 <div class="card-header bg-warning text-white">
-                    <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Top Skills</h5>
+                    <h5 class="mb-0" style="font-size: 1.1rem;"><i class="bi bi-pie-chart me-2"></i>Top Skills</h5>
                 </div>
                 <div class="card-body">
                     {% if skill_stats.top_skills and skill_stats.top_skills|length > 0 %}
@@ -310,7 +310,7 @@
         <div class="col-md-12">
             <div class="card shadow-sm">
                 <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-globe me-2"></i>Job Opportunities by Country</h5>
+                    <h5 class="mb-0" style="font-size: 1.1rem;"><i class="bi bi-globe me-2"></i>Job Opportunities by Country</h5>
                     <div class="btn-group btn-group-sm" role="group">
                         <button type="button" class="btn btn-light" onclick="filterDashboard('all')">All</button>
                         <button type="button" class="btn btn-light" onclick="filterDashboard('country')">By Country</button>
@@ -591,29 +591,29 @@ function initDashboardCharts() {
     }
     {% endif %}
 
-    // Skills by Category Chart
-    {% if skill_stats and skill_stats.skills_by_category and skill_stats.skills_by_category|length > 0 %}
+    // Skill Distribution Chart (using top skills)
+    {% if skill_stats and skill_stats.top_skills and skill_stats.top_skills|length > 0 %}
     try {
         const skillsCtx = document.getElementById('skillsChart');
         if (skillsCtx && typeof Chart !== 'undefined') {
-            const categories = [{% for category in skill_stats.skills_by_category.keys() %}'{{ category|replace("'", "\\'") }}',{% endfor %}];
-            const counts = [{% for category, skills in skill_stats.skills_by_category.items() %}{{ skills|length }},{% endfor %}];
+            const topSkills = {{ skill_stats.top_skills[:10]|tojson|safe }};
+            const skillLabels = topSkills.map(s => s.length > 20 ? s.substring(0, 20) + '...' : s);
             
-            console.log('[DASHBOARD] Skills chart data:', categories, counts);
+            console.log('[DASHBOARD] Skill distribution chart data:', skillLabels);
             
-            if (categories.length > 0 && counts.length > 0 && categories[0] !== '') {
+            if (skillLabels.length > 0) {
         
-        // Color palette for different categories
-        const colors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#84cc16', '#f97316'];
+        // Color palette for skills
+        const colors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#14b8a6'];
         
         new Chart(skillsCtx, {
             type: 'bar',
             data: {
-                labels: categories,
+                labels: skillLabels,
                 datasets: [{
-                    label: 'Skills Count',
-                    data: counts,
-                    backgroundColor: categories.map((_, i) => colors[i % colors.length]),
+                    label: 'Top Skills',
+                    data: Array(skillLabels.length).fill(1),
+                    backgroundColor: skillLabels.map((_, i) => colors[i % colors.length]),
                     borderRadius: 8,
                     borderSkipped: false
                 }]
@@ -637,7 +637,7 @@ function initDashboardCharts() {
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return context.parsed.y + ' skills';
+                                return skillLabels[context.dataIndex];
                             }
                         }
                     }
@@ -645,7 +645,7 @@ function initDashboardCharts() {
             }
         });
             } else {
-                console.warn('[DASHBOARD] No skills category data');
+                console.warn('[DASHBOARD] No top skills data');
             }
         }
     } catch(err) {

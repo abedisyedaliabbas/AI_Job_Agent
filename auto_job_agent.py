@@ -14,6 +14,7 @@ from comprehensive_job_search import ComprehensiveJobSearch
 from typing import List, Dict
 import json
 import time
+import re
 
 
 class AutoJobAgent:
@@ -72,11 +73,13 @@ class AutoJobAgent:
                         keywords.extend(skill_words[:3])  # Top 3 per skill
         
         # Extract from experience titles - focus on job roles and fields
-        # BUT filter out generic job title words
+        # BUT filter out generic job title words AND description words
         generic_job_words = {
             'postdoctoral', 'postdoc', 'undergraduate', 'graduate', 'senior', 'junior', 
             'lead', 'principal', 'assistant', 'associate', 'visiting', 'research', 
-            'researcher', 'scientist', 'engineer', 'fellow', 'position', 'role'
+            'researcher', 'scientist', 'engineer', 'fellow', 'position', 'role',
+            'successfully', 'performance', 'nature', 'communications', 'optimization',
+            'success', 'successful', 'perform', 'performing', 'natural', 'communicate'
         }
         
         job_role_keywords = []
@@ -88,7 +91,10 @@ class AutoJobAgent:
                 # Extract key terms (4+ chars) but filter out generic words
                 title_words = [w for w in title_clean.split() 
                              if len(w) >= 4 and w not in generic_job_words]
-                job_role_keywords.extend(title_words[:2])  # Top 2 per experience
+                # Only add meaningful technical terms
+                for word in title_words[:2]:
+                    if word not in ['successfully', 'performance', 'nature', 'communications', 'optimization']:
+                        job_role_keywords.append(word)
         
         keywords.extend(job_role_keywords)
         
@@ -116,7 +122,7 @@ class AutoJobAgent:
                         if len(term) >= 4 and term not in generic_edu_words:
                             keywords.append(f"{modifier} {term}")
         
-        # Remove duplicates and common/generic words
+        # Remove duplicates and common/generic words - EXPANDED list
         common_words = {
             'the', 'and', 'or', 'for', 'with', 'from', 'that', 'this', 'are', 'was', 'from', 'in', 'at', 'on', 'to', 'of', 'a', 'an',
             # Generic job titles
@@ -125,14 +131,19 @@ class AutoJobAgent:
             'postdoctoral', 'postdoc', 'undergraduate', 'graduate', 'fellow', 'visiting',
             # Generic tech terms
             'data', 'system', 'systems', 'software', 'application', 'applications', 'technology', 'technologies', 'service', 'services',
-            # Generic action words
+            # Generic action words and adverbs
             'work', 'working', 'experience', 'skills', 'skill', 'expertise', 'knowledge', 'ability', 'abilities',
             'research', 'developing', 'creating', 'designing', 'implementing', 'using', 'utilizing',
+            'successfully', 'performance', 'nature', 'communications', 'communication', 'optimization', 'optimize',
+            'success', 'successful', 'perform', 'performing', 'natural', 'communicate', 'optimize', 'optimizing',
             # Institution words
             'university', 'college', 'institute', 'department', 'school', 'program', 'programme',
             # Generic academic terms
             'mathematics', 'math', 'engineering', 'science', 'physics', 'chemistry', 'biology',
-            'bachelor', 'master', 'phd', 'doctorate', 'degree', 'studies'
+            'bachelor', 'master', 'phd', 'doctorate', 'degree', 'studies',
+            # Generic descriptive words
+            'method', 'methods', 'approach', 'approaches', 'technique', 'techniques', 'process', 'processes',
+            'analysis', 'analyses', 'study', 'studies', 'project', 'projects', 'work', 'works'
         }
         keywords = [k for k in keywords if k not in common_words and len(k) >= 4]  # Minimum 4 chars
         
@@ -203,7 +214,7 @@ class AutoJobAgent:
                 return skill_keywords[:5]
             else:
                 # Last resort: very generic but better than nothing
-                return ["computational", "research"]
+                return ["computational", "research", "chemistry"]
     
     def auto_search_and_apply(self, max_jobs: int = 10, min_match_score: float = 0.6, 
                               auto_apply: bool = False) -> Dict:
@@ -225,11 +236,26 @@ class AutoJobAgent:
             print(f"[AUTO AGENT] Searching for jobs with keywords: {keywords}")
             print(f"[AUTO AGENT] Location: {location}")
             
-            # PRIORITIZE: Use Google search FIRST (finds company website jobs directly)
-            # Then use comprehensive search as backup
+            # USE AI/ML-POWERED JOB DISCOVERY FIRST
             jobs = []
             
-            # Google search FIRST - finds direct company website jobs
+            # Step 1: AI-Powered Job Discovery (uses ML to find company websites)
+            try:
+                from ai_job_discovery import AIJobDiscovery
+                print(f"[AUTO AGENT] Using AI/ML to discover jobs from company websites...")
+                ai_discovery = AIJobDiscovery()
+                ai_jobs = ai_discovery.discover_jobs_ai(keywords, location, max_jobs * 3)
+                if ai_jobs:
+                    jobs.extend(ai_jobs)
+                    print(f"[AUTO AGENT] AI discovery found: {len(ai_jobs)} jobs from company websites")
+            except ImportError:
+                print(f"[AUTO AGENT] AI discovery not available (install: pip install sentence-transformers scikit-learn)")
+            except Exception as e:
+                print(f"[AUTO AGENT] AI discovery failed: {e}")
+                import traceback
+                traceback.print_exc()
+            
+            # Step 2: Google search - finds direct company website jobs
             try:
                 print(f"[AUTO AGENT] Searching Google for company website jobs...")
                 google_jobs = self.google_search.search(
@@ -243,7 +269,7 @@ class AutoJobAgent:
                 import traceback
                 traceback.print_exc()
             
-            # Then use COMPREHENSIVE search (includes LinkedIn, Indeed, etc.)
+            # Step 3: Comprehensive search (includes Indeed, Glassdoor, etc. - but NOT LinkedIn)
             try:
                 # Search for more jobs than requested to account for duplicates and filtering
                 # Request 10x to ensure we get enough after deduplication and matching
@@ -268,8 +294,49 @@ class AutoJobAgent:
                     seen.add(key)
                     unique_jobs.append(job)
             
-            jobs = unique_jobs
-            print(f"[AUTO AGENT] Total unique jobs after deduplication: {len(jobs)}")
+            # PRIORITIZE company websites, but KEEP ALL jobs (including LinkedIn)
+            # LinkedIn jobs are still useful - user can apply manually or we can try auto-apply
+            def job_priority(job):
+                url_lower = (job.url or "").lower()
+                # LinkedIn gets lower priority but is KEPT
+                if 'linkedin.com' in url_lower:
+                    return 1  # Lower priority but included
+                # Higher priority for company websites
+                elif any(board in url_lower for board in ['indeed.com', 'glassdoor.com', 'monster.com', 'ziprecruiter.com']):
+                    return 2  # Medium priority
+                else:
+                    return 3  # Highest priority (company websites, direct links)
+            
+            # Sort by priority (highest first) - but KEEP ALL jobs
+            jobs = sorted(unique_jobs, key=lambda j: (job_priority(j), j.source or ""), reverse=True)
+            print(f"[AUTO AGENT] Total unique jobs found: {len(jobs)}")
+            
+            # Count by source
+            source_counts = {}
+            for job in jobs:
+                source = job.source or "unknown"
+                source_counts[source] = source_counts.get(source, 0) + 1
+            print(f"[AUTO AGENT] Jobs by source: {source_counts}")
+            
+            # FINAL FALLBACK: If still no jobs, try with simplified keywords
+            if len(jobs) == 0 and keywords:
+                print(f"[AUTO AGENT] No jobs found with current keywords. Trying simplified search...")
+                # Use only the top 3 most specific keywords, or use generic terms
+                simplified_keywords = keywords[:3] if len(keywords) >= 3 else keywords
+                # Also try generic job search terms
+                fallback_terms = ['researcher', 'scientist', 'chemistry', 'computational']
+                combined_keywords = simplified_keywords + [t for t in fallback_terms if t not in simplified_keywords]
+                
+                try:
+                    print(f"[AUTO AGENT] Fallback search with: {combined_keywords[:5]}")
+                    fallback_jobs = self.comprehensive_search.search(
+                        combined_keywords[:5], location, max_jobs * 3
+                    )
+                    if fallback_jobs:
+                        jobs.extend(fallback_jobs)
+                        print(f"[AUTO AGENT] Fallback search found: {len(fallback_jobs)} jobs")
+                except Exception as e:
+                    print(f"[AUTO AGENT] Fallback search failed: {e}")
             
             # If still not enough, try simple search as last resort
             if len(jobs) < max_jobs:

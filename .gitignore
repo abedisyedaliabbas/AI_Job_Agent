@@ -52,6 +52,10 @@ data/jobs_*.json
 uploads/
 static/cover_letters/
 
+# Keep data directory structure but ignore contents
+data/*
+!data/.gitkeep
+
 # Documentation files (remove from repo for professional look)
 AUTH_SETUP.md
 AUTO_APPLY_SETUP.md

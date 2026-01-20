@@ -1309,19 +1309,31 @@ def dashboard():
             'completeness': completeness
         }
         
-        # Analyze jobs for country demand
+        # Analyze jobs for country demand - extract country properly
         for job in jobs:
             if isinstance(job, dict):
                 location = job.get('location', '')
+                company = job.get('company', '')
             else:
                 location = getattr(job, 'location', '')
+                company = getattr(job, 'company', '')
             
             if location:
-                # Extract country from location
-                country = location.split(',')[-1].strip() if ',' in location else location
-                if country not in country_demand:
-                    country_demand[country] = 0
-                country_demand[country] += 1
+                # Extract country from location (last part after comma, or full if no comma)
+                location_parts = [p.strip() for p in location.split(',')]
+                # Use last part as country, but filter out common non-country words
+                country = location_parts[-1] if location_parts else location
+                
+                # Filter out company names and non-country words
+                non_country_words = ['remote', 'hybrid', 'on-site', 'onsite', 'full-time', 'part-time', 
+                                    'contract', 'internship', 'temporary', 'permanent', 'flexible']
+                if country.lower() not in non_country_words and len(country) > 2:
+                    # Clean up country name
+                    country = country.replace('*', '').strip()  # Remove stars/redaction
+                    if country and country.lower() not in ['n/a', 'na', 'tbd', '']:
+                        if country not in country_demand:
+                            country_demand[country] = 0
+                        country_demand[country] += 1
         
         # Match skills to job descriptions
         skill_job_matches = {}
