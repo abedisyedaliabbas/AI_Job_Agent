@@ -5,7 +5,7 @@ Copy these to **Railway → Your Project → Variables** tab:
 ```
 SECRET_KEY=f2b3d949f6b0faacc83a7a2d41d56baa2f1c166c76a16eb01c988b6149d43a4d
 GOOGLE_CLIENT_ID=1086565305948-198mgintlu4aksgd21h4r25um90e1lfp.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+GOOGLE_CLIENT_SECRET=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
 GOOGLE_MAPS_API_KEY=AIzaSyCzd7IgzkShBRykHxBkpxZe8n2Eb2JSdDo
 FLASK_ENV=production
 ```
