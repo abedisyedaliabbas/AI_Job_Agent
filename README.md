@@ -34,7 +34,7 @@ An intelligent, AI-powered job search and application automation platform that h
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/AI_Job_Agent.git
+git clone https://github.com/abedisyedaliabbas/AI_Job_Agent.git
 cd AI_Job_Agent
 
 # Install dependencies
