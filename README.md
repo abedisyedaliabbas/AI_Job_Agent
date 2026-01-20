@@ -135,7 +135,7 @@ Visit: `http://localhost:5000`
 
 3. **Deploy**:
    - Railway auto-detects `Procfile` and `runtime.txt`
-   - App will be live at `https://your-app.railway.app`
+   - App will be live at `https://aijobagent.up.railway.app`
 
 ### Heroku
 
