@@ -48,7 +48,9 @@
 
 After creation, you'll see:
 - **Client ID**: Copy this → `GOOGLE_CLIENT_ID`
+  - ✅ Your Client ID: `1086565305948-198mgintlu4aksgd21h4r25um90e1lfp.apps.googleusercontent.com`
 - **Client Secret**: Click "Show" and copy → `GOOGLE_CLIENT_SECRET`
+  - ⚠️ **You still need to get this!** Go back to Google Cloud Console → Credentials → Your OAuth Client → Click "Show" next to Client Secret
 
 ## Step 6: Add to Railway
 
