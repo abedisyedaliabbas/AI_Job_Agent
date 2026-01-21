@@ -1027,8 +1027,12 @@ def auth_login():
 def auth_google():
     """Initiate Google OAuth flow"""
     try:
-        # Allow insecure transport for localhost (development only)
-        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+        # Allow insecure transport only for localhost (development)
+        if request.host.startswith('localhost') or request.host.startswith('127.0.0.1'):
+            os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+        else:
+            # Production - ensure secure transport
+            os.environ.pop('OAUTHLIB_INSECURE_TRANSPORT', None)
         
         from google_auth_oauthlib.flow import Flow
         from google.oauth2 import id_token
@@ -1042,6 +1046,12 @@ def auth_google():
             # Fallback: create demo Google user
             return auth_google_demo()
         
+        # Build redirect URI - ensure it uses https in production
+        redirect_uri = request.url_root.rstrip('/') + '/auth/google/callback'
+        # Force https in production (Railway provides https)
+        if not redirect_uri.startswith('http://localhost'):
+            redirect_uri = redirect_uri.replace('http://', 'https://')
+        
         flow = Flow.from_client_config(
             {
                 "web": {
@@ -1049,13 +1059,13 @@ def auth_google():
                     "client_secret": CLIENT_SECRET,
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
-                    "redirect_uris": [request.url_root.rstrip('/') + '/auth/google/callback']
+                    "redirect_uris": [redirect_uri]
                 }
             },
             scopes=['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile']
         )
         
-        flow.redirect_uri = request.url_root.rstrip('/') + '/auth/google/callback'
+        flow.redirect_uri = redirect_uri
         authorization_url, state = flow.authorization_url(
             access_type='offline',
             include_granted_scopes='true'
@@ -1073,8 +1083,12 @@ def auth_google():
 def auth_google_callback():
     """Handle Google OAuth callback"""
     try:
-        # Allow insecure transport for localhost (development only)
-        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+        # Allow insecure transport only for localhost (development)
+        if request.host.startswith('localhost') or request.host.startswith('127.0.0.1'):
+            os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+        else:
+            # Production - ensure secure transport
+            os.environ.pop('OAUTHLIB_INSECURE_TRANSPORT', None)
         
         from google_auth_oauthlib.flow import Flow
         from google.oauth2 import id_token
@@ -1090,6 +1104,12 @@ def auth_google_callback():
         if not state:
             return redirect('/?error=invalid_state')
         
+        # Build redirect URI - ensure it uses https in production
+        redirect_uri = request.url_root.rstrip('/') + '/auth/google/callback'
+        # Force https in production (Railway provides https)
+        if not redirect_uri.startswith('http://localhost'):
+            redirect_uri = redirect_uri.replace('http://', 'https://')
+        
         flow = Flow.from_client_config(
             {
                 "web": {
@@ -1097,14 +1117,14 @@ def auth_google_callback():
                     "client_secret": CLIENT_SECRET,
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
-                    "redirect_uris": [request.url_root.rstrip('/') + '/auth/google/callback']
+                    "redirect_uris": [redirect_uri]
                 }
             },
             scopes=['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'],
             state=state
         )
         
-        flow.redirect_uri = request.url_root.rstrip('/') + '/auth/google/callback'
+        flow.redirect_uri = redirect_uri
         flow.fetch_token(authorization_response=request.url)
         
         credentials = flow.credentials
