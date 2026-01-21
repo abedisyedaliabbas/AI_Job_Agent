@@ -1027,24 +1027,26 @@ def auth_login():
 def auth_google():
     """Initiate Google OAuth flow"""
     try:
-        # NEVER allow insecure transport in production - only for actual localhost
-        # Check if we're truly on localhost (not Railway or any other host)
+        # Check if we're on localhost (development)
         is_localhost = (
             request.host.startswith('localhost') or 
             request.host.startswith('127.0.0.1') or
             request.host.startswith('localhost:')
         )
         
-        # Only allow insecure transport for actual localhost development
-        if is_localhost and not request.is_secure:
+        # Check if we're using HTTPS (Railway provides this via proxy headers)
+        is_https = (
+            request.is_secure or 
+            request.headers.get('X-Forwarded-Proto') == 'https' or
+            request.headers.get('X-Forwarded-Ssl') == 'on'
+        )
+        
+        # Only allow insecure transport for actual localhost development without HTTPS
+        if is_localhost and not is_https:
             os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
         else:
             # Production - MUST use HTTPS, remove insecure transport flag
             os.environ.pop('OAUTHLIB_INSECURE_TRANSPORT', None)
-            # Ensure we're using HTTPS
-            if not request.is_secure and not is_localhost:
-                # Force HTTPS redirect
-                return redirect(request.url.replace('http://', 'https://'), code=301)
         
         from google_auth_oauthlib.flow import Flow
         from google.oauth2 import id_token
@@ -1104,23 +1106,26 @@ def auth_google_callback():
                 return redirect('/?error=redirect_uri_mismatch&message=Please add the redirect URI to Google Cloud Console')
             return redirect(f'/?error=google_oauth_error&message={error_desc}')
         
-        # NEVER allow insecure transport in production - only for actual localhost
+        # Check if we're on localhost (development)
         is_localhost = (
             request.host.startswith('localhost') or 
             request.host.startswith('127.0.0.1') or
             request.host.startswith('localhost:')
         )
         
-        # Only allow insecure transport for actual localhost development
-        if is_localhost and not request.is_secure:
+        # Check if we're using HTTPS (Railway provides this via proxy headers)
+        is_https = (
+            request.is_secure or 
+            request.headers.get('X-Forwarded-Proto') == 'https' or
+            request.headers.get('X-Forwarded-Ssl') == 'on'
+        )
+        
+        # Only allow insecure transport for actual localhost development without HTTPS
+        if is_localhost and not is_https:
             os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
         else:
             # Production - MUST use HTTPS, remove insecure transport flag
             os.environ.pop('OAUTHLIB_INSECURE_TRANSPORT', None)
-            # Ensure we're using HTTPS
-            if not request.is_secure and not is_localhost:
-                # Force HTTPS redirect
-                return redirect(request.url.replace('http://', 'https://'), code=301)
         
         from google_auth_oauthlib.flow import Flow
         from google.oauth2 import id_token
