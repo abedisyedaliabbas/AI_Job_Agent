@@ -1083,6 +1083,15 @@ def auth_google():
 def auth_google_callback():
     """Handle Google OAuth callback"""
     try:
+        # Check for error from Google OAuth
+        error = request.args.get('error')
+        if error:
+            error_desc = request.args.get('error_description', error)
+            print(f"[AUTH] Google OAuth error: {error} - {error_desc}")
+            if 'redirect_uri_mismatch' in error_desc.lower():
+                return redirect('/?error=redirect_uri_mismatch&message=Please add the redirect URI to Google Cloud Console')
+            return redirect(f'/?error=google_oauth_error&message={error_desc}')
+        
         # Allow insecure transport only for localhost (development)
         if request.host.startswith('localhost') or request.host.startswith('127.0.0.1'):
             os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
@@ -1098,17 +1107,21 @@ def auth_google_callback():
         CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
         
         if not CLIENT_ID or not CLIENT_SECRET:
+            print("[AUTH] Google OAuth credentials not configured")
             return auth_google_demo()
         
         state = session.get('google_oauth_state')
         if not state:
-            return redirect('/?error=invalid_state')
+            print("[AUTH] No OAuth state in session - session may have expired")
+            return redirect('/?error=invalid_state&message=Session expired. Please try again.')
         
         # Build redirect URI - ensure it uses https in production
         redirect_uri = request.url_root.rstrip('/') + '/auth/google/callback'
         # Force https in production (Railway provides https)
         if not redirect_uri.startswith('http://localhost'):
             redirect_uri = redirect_uri.replace('http://', 'https://')
+        
+        print(f"[AUTH] Using redirect URI: {redirect_uri}")
         
         flow = Flow.from_client_config(
             {
@@ -1125,6 +1138,7 @@ def auth_google_callback():
         )
         
         flow.redirect_uri = redirect_uri
+        print(f"[AUTH] Fetching token with URL: {request.url}")
         flow.fetch_token(authorization_response=request.url)
         
         credentials = flow.credentials
@@ -1169,10 +1183,20 @@ def auth_google_callback():
         get_user_session()
         return redirect('/dashboard')
     except Exception as e:
-        print(f"[AUTH] Google callback error: {e}")
+        error_msg = str(e)
+        print(f"[AUTH] Google callback error: {error_msg}")
         import traceback
         traceback.print_exc()
-        return redirect('/?error=google_auth_failed')
+        
+        # Provide more specific error messages
+        if 'redirect_uri_mismatch' in error_msg.lower():
+            return redirect('/?error=redirect_uri_mismatch&message=Redirect URI mismatch. Add https://aijobagent.up.railway.app/auth/google/callback to Google Cloud Console')
+        elif 'invalid_grant' in error_msg.lower():
+            return redirect('/?error=invalid_grant&message=Authorization code expired. Please try again.')
+        elif 'access_denied' in error_msg.lower():
+            return redirect('/?error=access_denied&message=Access denied by user.')
+        else:
+            return redirect(f'/?error=google_auth_failed&message={error_msg[:100]}')
 
 
 def auth_google_demo():
