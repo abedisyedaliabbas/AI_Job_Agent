@@ -6,15 +6,34 @@ from job_search import JobSearchEngine, JobListing
 from job_matcher import JobMatcher
 from cover_letter_generator import CoverLetterGenerator
 from application_automator import ApplicationAutomator
-from worldwide_job_search import WorldwideJobSearch
-from fast_job_search import FastJobSearch
-from simple_job_search import SimpleJobSearch
 from google_job_search import GoogleJobSearch
 from comprehensive_job_search import ComprehensiveJobSearch
 from typing import List, Dict
 import json
 import time
 import re
+
+# Optional imports for legacy job search modules (gracefully handle if missing)
+try:
+    from worldwide_job_search import WorldwideJobSearch
+    WORLDWIDE_SEARCH_AVAILABLE = True
+except ImportError:
+    WORLDWIDE_SEARCH_AVAILABLE = False
+    WorldwideJobSearch = None
+
+try:
+    from fast_job_search import FastJobSearch
+    FAST_SEARCH_AVAILABLE = True
+except ImportError:
+    FAST_SEARCH_AVAILABLE = False
+    FastJobSearch = None
+
+try:
+    from simple_job_search import SimpleJobSearch
+    SIMPLE_SEARCH_AVAILABLE = True
+except ImportError:
+    SIMPLE_SEARCH_AVAILABLE = False
+    SimpleJobSearch = None
 
 
 class AutoJobAgent:
@@ -23,9 +42,30 @@ class AutoJobAgent:
     def __init__(self, profile_manager: ProfileManager):
         self.profile_manager = profile_manager
         self.job_search = JobSearchEngine()
-        self.job_search.worldwide_search = WorldwideJobSearch()
-        self.fast_search = FastJobSearch()
-        self.simple_search = SimpleJobSearch()
+        
+        # Optional legacy search modules (gracefully handle if missing)
+        if WORLDWIDE_SEARCH_AVAILABLE and WorldwideJobSearch:
+            try:
+                self.job_search.worldwide_search = WorldwideJobSearch()
+            except:
+                pass
+        
+        if FAST_SEARCH_AVAILABLE and FastJobSearch:
+            try:
+                self.fast_search = FastJobSearch()
+            except:
+                self.fast_search = None
+        else:
+            self.fast_search = None
+            
+        if SIMPLE_SEARCH_AVAILABLE and SimpleJobSearch:
+            try:
+                self.simple_search = SimpleJobSearch()
+            except:
+                self.simple_search = None
+        else:
+            self.simple_search = None
+        
         self.google_search = GoogleJobSearch()  # Google-based search (fallback)
         self.comprehensive_search = ComprehensiveJobSearch()  # NEW: Comprehensive multi-source search (1000+ jobs)
         self.job_matcher = JobMatcher(profile_manager)
@@ -339,7 +379,7 @@ class AutoJobAgent:
                     print(f"[AUTO AGENT] Fallback search failed: {e}")
             
             # If still not enough, try simple search as last resort
-            if len(jobs) < max_jobs:
+            if len(jobs) < max_jobs and self.simple_search:
                 try:
                     simple_jobs = self.simple_search.search(
                         keywords, location, max_jobs * 2
