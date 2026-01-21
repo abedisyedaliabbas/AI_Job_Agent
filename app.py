@@ -203,6 +203,11 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'doc', 'docx', 'txt'}
 
+# Trust proxy headers from Railway (for HTTPS detection)
+# This is critical for OAuth to work correctly behind Railway's proxy
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
 # Set permissive CSP header to allow Chart.js and other JavaScript libraries
 @app.after_request
 def set_permissive_csp(response):
