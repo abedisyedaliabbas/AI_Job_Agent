@@ -16,10 +16,12 @@ google-auth-oauthlib>=1.1.0
 google-auth-httplib2>=0.1.1
 gunicorn>=21.2.0
 # AI/ML Dependencies (Optional - for enhanced matching)
-# Note: These are large packages (~4-6 GB total) and will slow down builds
-# The app works without them but with reduced ML matching capabilities
-sentence-transformers>=2.2.0
-scikit-learn>=1.3.0
-numpy>=1.24.0
-transformers>=4.30.0
-torch>=2.0.0
+# TEMPORARILY DISABLED to fix Railway build timeout
+# These packages are very large (~4-6 GB) and cause Docker upload timeout
+# App will work with keyword-based matching fallback (handled gracefully in code)
+# To re-enable: Install CPU-only PyTorch first, then uncomment these
+# sentence-transformers>=2.2.0
+# scikit-learn>=1.3.0
+# numpy>=1.24.0
+# transformers>=4.30.0
+# torch>=2.0.0  # Use CPU-only: pip install torch --index-url https://download.pytorch.org/whl/cpu

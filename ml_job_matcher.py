@@ -5,17 +5,18 @@ Uses sentence transformers, embeddings, and ML models for better matching
 from typing import List, Dict, Optional
 from job_search import JobListing
 from profile_manager import ProfileManager
-import numpy as np
 from collections import Counter
 import re
 
 try:
     from sentence_transformers import SentenceTransformer
     from sklearn.metrics.pairwise import cosine_similarity
+    import numpy as np
     ML_AVAILABLE = True
 except ImportError:
     ML_AVAILABLE = False
-    print("[ML MATCHER] Warning: sentence-transformers not installed. Install with: pip install sentence-transformers scikit-learn")
+    np = None
+    print("[ML MATCHER] Warning: ML libraries not installed. Install with: pip install sentence-transformers scikit-learn numpy")
 
 
 class MLJobMatcher:

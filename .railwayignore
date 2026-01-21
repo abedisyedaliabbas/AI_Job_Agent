@@ -1,0 +1,75 @@
+# Railway ignore file - excludes files from build context
+# This reduces build time and Docker image size
+
+# Documentation files (not needed in production)
+*.md
+!README.md
+
+# Development and setup files
+setup_auth.py
+update_env_secret.py
+verify_redirect_uri.py
+verify_profile.py
+example_usage.py
+add_jobs_manual.py
+
+# Old/unused code files
+cv_parser.py
+resume_parser.py
+resume_parser_improved.py
+intelligent_resume_parser.py
+fast_job_search.py
+simple_job_search.py
+worldwide_job_search.py
+job_search.py
+job_search_helper.py
+job_matcher.py
+smart_job_matcher.py
+ai_job_agent.py
+
+# User data and uploads (handled at runtime)
+data/users.json
+data/profile_*.json
+data/jobs_*.json
+uploads/
+static/cover_letters/
+
+# Config files with secrets
+.env
+.env.backup
+config.json
+*.key
+*.pem
+
+# IDE and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+env/
+venv/
+ENV/
+.venv
+
+# Logs
+*.log
+
+# Cover letter examples
+cover_letter_*.txt
+
+# Example data
+example_jobs.json
+jobs.json
+profile.json
+applications_log.json
+
