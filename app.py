@@ -1036,22 +1036,19 @@ def auth_google():
         is_localhost = (
             request.host.startswith('localhost') or 
             request.host.startswith('127.0.0.1') or
-            request.host.startswith('localhost:')
+            'localhost' in request.host
         )
         
-        # Check if we're using HTTPS (Railway provides this via proxy headers)
-        is_https = (
-            request.is_secure or 
-            request.headers.get('X-Forwarded-Proto') == 'https' or
-            request.headers.get('X-Forwarded-Ssl') == 'on'
-        )
-        
-        # Only allow insecure transport for actual localhost development without HTTPS
-        if is_localhost and not is_https:
+        # ALWAYS remove insecure transport in production (Railway uses HTTPS)
+        # With ProxyFix, request.is_secure should work correctly
+        if is_localhost and not request.is_secure:
+            # Only for localhost without HTTPS
             os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+            print("[AUTH] Using insecure transport for localhost development")
         else:
             # Production - MUST use HTTPS, remove insecure transport flag
             os.environ.pop('OAUTHLIB_INSECURE_TRANSPORT', None)
+            print(f"[AUTH] Production mode - HTTPS required. is_secure={request.is_secure}, host={request.host}")
         
         from google_auth_oauthlib.flow import Flow
         from google.oauth2 import id_token
@@ -1115,22 +1112,19 @@ def auth_google_callback():
         is_localhost = (
             request.host.startswith('localhost') or 
             request.host.startswith('127.0.0.1') or
-            request.host.startswith('localhost:')
+            'localhost' in request.host
         )
         
-        # Check if we're using HTTPS (Railway provides this via proxy headers)
-        is_https = (
-            request.is_secure or 
-            request.headers.get('X-Forwarded-Proto') == 'https' or
-            request.headers.get('X-Forwarded-Ssl') == 'on'
-        )
-        
-        # Only allow insecure transport for actual localhost development without HTTPS
-        if is_localhost and not is_https:
+        # ALWAYS remove insecure transport in production (Railway uses HTTPS)
+        # With ProxyFix, request.is_secure should work correctly
+        if is_localhost and not request.is_secure:
+            # Only for localhost without HTTPS
             os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+            print("[AUTH] Using insecure transport for localhost development")
         else:
             # Production - MUST use HTTPS, remove insecure transport flag
             os.environ.pop('OAUTHLIB_INSECURE_TRANSPORT', None)
+            print(f"[AUTH] Production mode - HTTPS required. is_secure={request.is_secure}, host={request.host}")
         
         from google_auth_oauthlib.flow import Flow
         from google.oauth2 import id_token
@@ -1148,13 +1142,14 @@ def auth_google_callback():
             print("[AUTH] No OAuth state in session - session may have expired")
             return redirect('/?error=invalid_state&message=Session expired. Please try again.')
         
-        # Build redirect URI - ensure it uses https in production
+        # Build redirect URI - ALWAYS use https in production (Railway)
+        # With ProxyFix, request.url_root should have https://, but force it anyway
         redirect_uri = request.url_root.rstrip('/') + '/auth/google/callback'
-        # Force https in production (Railway provides https)
-        if not redirect_uri.startswith('http://localhost'):
+        # Force https for any non-localhost URL (Railway always uses HTTPS)
+        if 'localhost' not in redirect_uri and '127.0.0.1' not in redirect_uri:
             redirect_uri = redirect_uri.replace('http://', 'https://')
         
-        print(f"[AUTH] Using redirect URI: {redirect_uri}")
+        print(f"[AUTH] Redirect URI: {redirect_uri}")
         
         flow = Flow.from_client_config(
             {
